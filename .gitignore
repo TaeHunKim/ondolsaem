@@ -1,0 +1,34 @@
+# Build / IDE
+*.iml
+.gradle/
+.idea/
+.kotlin/
+/build/
+**/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+/local.properties
+.DS_Store
+
+# Models and databases (large, downloaded at runtime)
+*.gguf
+*.tflite
+*.onnx
+*.litertlm
+*.task
+*.db
+*.db-shm
+*.db-wal
+*.xnnpack_cache
+
+# Third-party binaries fetched by scripts (see scripts/fetch-sherpa-onnx.sh)
+/app/libs/*.aar
+/app/src/main/assets/*.onnx
+
+# Local tool state and signing keys
+.claude/settings.local.json
+.claude/settings.json
+.codex/
+*.jks
+*.keystore
