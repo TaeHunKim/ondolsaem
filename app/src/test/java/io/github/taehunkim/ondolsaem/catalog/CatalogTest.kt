@@ -26,4 +26,12 @@ class CatalogTest {
     @Test fun embeddingChangeRequiresReindex() {
         assertEquals(ChangeImpact.REINDEX_REQUIRED, ModelCategories.byId("embedding")!!.changeImpact)
     }
+
+    @Test fun everyDownloadHasAChecksum() {
+        for (m in ModelCatalog.all) when (val s = m.source) {
+            is ModelSource.HuggingFace -> assertTrue(m.id, s.sha256?.length == 64)
+            is ModelSource.Archive -> assertEquals(m.id, s.files.values.toSet(), s.sha256.keys)
+            else -> Unit
+        }
+    }
 }

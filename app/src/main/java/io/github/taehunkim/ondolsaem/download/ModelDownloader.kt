@@ -12,7 +12,7 @@ import java.io.RandomAccessFile
 import java.util.concurrent.TimeUnit
 
 class DownloadException(val kind: Kind, message: String? = null) : IOException(message) {
-    enum class Kind { AUTH, NOT_FOUND, HTTP, NETWORK }
+    enum class Kind { AUTH, NOT_FOUND, HTTP, NETWORK, CORRUPT }
 }
 
 /** Resumable HTTP downloader (`.part` file + Range). */

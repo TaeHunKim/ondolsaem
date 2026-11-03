@@ -26,6 +26,8 @@ sealed interface ModelState {
     /** Queued until an unmetered network (Wi-Fi) is available. */
     data object WaitingForWifi : ModelState
     data class Downloading(val downloaded: Long, val total: Long) : ModelState
+    /** Downloaded; checking the SHA-256 (and unpacking an archive). */
+    data object Verifying : ModelState
     data object Installed : ModelState
     data class Failed(val kind: DownloadException.Kind?, val message: String?) : ModelState
     data object Unavailable : ModelState
@@ -62,7 +64,8 @@ class ModelManager(
             ModelCatalog.all.associate { spec ->
                 spec.id to when {
                     spec.source is ModelSource.Planned -> ModelState.Unavailable
-                    (old[spec.id] is ModelState.Downloading || old[spec.id] is ModelState.WaitingForWifi) && !isReady(spec) -> old[spec.id]!!
+                    (old[spec.id] is ModelState.Downloading || old[spec.id] is ModelState.WaitingForWifi || old[spec.id] is ModelState.Verifying) &&
+                        !isReady(spec) -> old[spec.id]!!
                     isReady(spec) -> ModelState.Installed
                     else -> old[spec.id]?.takeIf { it is ModelState.Failed } ?: ModelState.NotInstalled
                 }
@@ -117,10 +120,23 @@ class ModelManager(
                 set(spec.id, ModelState.Downloading(d, t))
                 onProgress(d, t)
             }
-            (spec.source as? ModelSource.Archive)?.let { src ->
-                // unpacking takes a while: keep showing a full progress bar instead of "installed"
-                withContext(Dispatchers.IO) { ArchiveExtractor.extract(target, dir(spec), src.files) }
-                target.delete()
+            set(spec.id, ModelState.Verifying)
+            withContext(Dispatchers.IO) {
+                when (val src = spec.source) {
+                    is ModelSource.HuggingFace -> Checksums.verify(target, src.sha256)
+                    is ModelSource.Archive -> {
+                        ArchiveExtractor.extract(target, dir(spec), src.files)
+                        target.delete()
+                        // a corrupt archive usually fails to unpack; this also catches a wrong but readable one
+                        try {
+                            src.sha256.forEach { (name, sha) -> Checksums.verify(File(dir(spec), name), sha) }
+                        } catch (e: DownloadException) {
+                            dir(spec).deleteRecursively()
+                            throw e
+                        }
+                    }
+                    else -> Unit
+                }
             }
             set(spec.id, ModelState.Installed)
         } catch (e: CancellationException) {

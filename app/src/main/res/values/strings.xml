@@ -101,4 +101,6 @@
     <string name="settings_version">Version</string>
     <string name="settings_api">Service API</string>
     <string name="settings_about_body">OndolSaem keeps on-device AI models for other apps. Models run on this phone; nothing you search, say or show is sent anywhere.</string>
+    <string name="model_verifying">Checking the file…</string>
+    <string name="model_err_corrupt">The downloaded file was damaged and has been deleted. Retry to download it again.</string>
 </resources>

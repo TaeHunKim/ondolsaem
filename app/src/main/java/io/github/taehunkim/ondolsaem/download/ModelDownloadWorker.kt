@@ -40,7 +40,7 @@ class ModelDownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWor
             container.onModelInstalled(spec.id)
             Result.success()
         } catch (e: DownloadException) {
-            // Auth/404 won't fix themselves; network errors can be retried.
+            // Auth/404/corrupt won't fix themselves (a corrupt file was deleted; the user retries); network errors can be retried.
             if (e.kind == DownloadException.Kind.NETWORK) Result.retry() else Result.failure()
         } catch (e: Exception) {
             Result.failure()

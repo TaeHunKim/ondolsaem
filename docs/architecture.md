@@ -33,7 +33,7 @@ Each category has curated models with descriptions; one model is the category de
 
 ## Downloads
 
-Downloads run in WorkManager with resume (`.part` file + HTTP Range) and a progress notification. On a metered network (mobile data or metered Wi-Fi, `ConnectivityManager.isActiveNetworkMetered`) the app warns before starting and offers "download now" or "wait for Wi-Fi" (`NetworkType.UNMETERED`, shown as "Waiting for Wi-Fi"). There is no checksum check yet beyond the byte count.
+Downloads run in WorkManager with resume (`.part` file + HTTP Range) and a progress notification. On a metered network (mobile data or metered Wi-Fi, `ConnectivityManager.isActiveNetworkMetered`) the app warns before starting and offers "download now" or "wait for Wi-Fi" (`NetworkType.UNMETERED`, shown as "Waiting for Wi-Fi"). After the download the file is checked against the SHA-256 in the catalog (the Hugging Face LFS id; for the SenseVoice archive, the hashes of the unpacked files), shown as "Checking the file…"; a mismatch deletes the file and reports it as damaged (`DownloadException.Kind.CORRUPT`), and Retry downloads it again from the start.
 
 ## Residency
 

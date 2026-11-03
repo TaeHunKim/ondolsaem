@@ -254,6 +254,10 @@ private fun ModelRow(
                     }
                 }
                 ModelState.NotInstalled -> OutlinedButton(onClick = onDownload) { Text(stringResource(R.string.model_download)) }
+                ModelState.Verifying -> {
+                    LinearProgressIndicator(Modifier.weight(1f))
+                    Text(stringResource(R.string.model_verifying), style = MaterialTheme.typography.labelMedium)
+                }
                 ModelState.WaitingForWifi -> {
                     Text(stringResource(R.string.model_waiting_wifi), style = MaterialTheme.typography.labelMedium)
                     TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
@@ -273,6 +277,7 @@ private fun ModelRow(
                                 DownloadException.Kind.AUTH -> R.string.model_err_auth
                                 DownloadException.Kind.NOT_FOUND -> R.string.model_err_not_found
                                 DownloadException.Kind.NETWORK -> R.string.model_err_network
+                                DownloadException.Kind.CORRUPT -> R.string.model_err_corrupt
                                 else -> R.string.model_err_http
                             },
                         ),
