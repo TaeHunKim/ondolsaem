@@ -49,4 +49,45 @@ class PriorityGateTest {
         runCatching { gate.run(OndolSaem.PRIORITY_INTERACTIVE) { error("boom") } }
         assertEquals("ok", gate.run(OndolSaem.PRIORITY_BACKGROUND) { "ok" })
     }
+
+    /** Starts [n] waiting background requests from [owner] while the gate is held; each appends its label. */
+    private fun queue(gate: PriorityGate, owner: String, n: Int, order: MutableList<String>, priority: Int = OndolSaem.PRIORITY_BACKGROUND) =
+        (0 until n).map { i ->
+            thread { gate.run(priority, owner) { order += "$owner$i" } }.also { Thread.sleep(30) } // keeps arrival order
+        }
+
+    @Test fun backgroundRequestsTakeTurnsByApp() {
+        val gate = PriorityGate()
+        val order = Collections.synchronizedList(ArrayList<String>())
+        gate.acquire(OndolSaem.PRIORITY_BACKGROUND, "hold")
+        val threads = queue(gate, "a", 4, order) + queue(gate, "b", 2, order) + queue(gate, "c", 1, order)
+        gate.release()
+        threads.forEach { it.join(5_000) }
+        assertEquals(listOf("a0", "b0", "c0", "a1", "b1", "a2", "a3"), order)
+    }
+
+    @Test fun interactiveStillGoesBeforeEveryBackgroundQueue() {
+        val gate = PriorityGate()
+        val order = Collections.synchronizedList(ArrayList<String>())
+        gate.acquire(OndolSaem.PRIORITY_BACKGROUND, "hold")
+        val threads = queue(gate, "a", 2, order) + queue(gate, "b", 1, order) +
+            queue(gate, "chat", 2, order, OndolSaem.PRIORITY_INTERACTIVE)
+        gate.release()
+        threads.forEach { it.join(5_000) }
+        assertEquals(listOf("chat0", "chat1", "a0", "b0", "a1"), order)
+    }
+
+    @Test fun anInterruptedWaiterLeavesTheQueue() {
+        val gate = PriorityGate()
+        val order = Collections.synchronizedList(ArrayList<String>())
+        gate.acquire(OndolSaem.PRIORITY_BACKGROUND, "hold")
+        val gone = thread { runCatching { gate.run(OndolSaem.PRIORITY_BACKGROUND, "a") { order += "a0" } } }
+        Thread.sleep(50)
+        val rest = queue(gate, "b", 1, order)
+        gone.interrupt(); gone.join(5_000)
+        gate.release()
+        rest.forEach { it.join(5_000) }
+        assertEquals(listOf("b0"), order)
+        assertEquals("free", gate.run(OndolSaem.PRIORITY_BACKGROUND, "a") { "free" })
+    }
 }

@@ -67,7 +67,7 @@ class HostService : Service() {
         val start = SystemClock.elapsedRealtime()
         var ok = false
         try {
-            val result = runtime.gates.getValue(category).run(priority) { runBlocking { block(pkg) } }
+            val result = runtime.gates.getValue(category).run(priority, pkg) { runBlocking { block(pkg) } }
             ok = true
             return result
         } catch (e: Exception) {
@@ -244,7 +244,7 @@ class HostService : Service() {
                 var ok = false
                 var acquired = false
                 try {
-                    runInterruptible { gate.acquire(priority) }
+                    runInterruptible { gate.acquire(priority, pkg) }
                     acquired = true
                     val images = request.userImages.orEmpty().map(Pfds::readAll)
                     val history = request.historyTexts.orEmpty().indices.map { i ->

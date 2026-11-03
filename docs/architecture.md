@@ -15,7 +15,7 @@ One AIDL interface per model category, reached from a small entry point, so a ne
 | `IAsrService` | `canTranscribe()`, `speechSpans(pfd)` (VAD), `transcribe(pfd, fromMs, ICueCallback)`; input is raw 16 kHz mono 16-bit PCM; the callback returns false to stop |
 
 - Large inputs (images, WAV, PCM) go as `ParcelFileDescriptor` because of Binder's ~1 MB transaction limit; the host then needs no storage permission.
-- Every request carries a priority: `INTERACTIVE` (chat, search queries) runs before `BACKGROUND` (indexing).
+- Every request carries a priority: `INTERACTIVE` (chat, search queries) runs before `BACKGROUND` (indexing); background requests of several apps take turns.
 - Errors: `ServiceSpecificException` is not public API, so the host throws `IllegalStateException("ondolsaem:<code>:<message>")` (`HostErrors`), which the client turns into `HostCallException(code)` with the codes in `OndolSaem.Errors` (`MODEL_NOT_READY`, `MODEL_FAILED`, `BAD_INPUT`, `CANCELLED`). A refused caller gets a `SecurityException` (client: `HostUnavailableException(NOT_ALLOWED)`).
 - `OndolSaemClient` in the SDK binds on first use (`BIND_AUTO_CREATE | BIND_IMPORTANT`), retries a call once when the host process died (not chat), unbinds after an idle minute, detects a missing host (`isInstalled()`, `launchIntent()`), and exposes suspend functions and a chat `Flow`.
 
@@ -47,7 +47,7 @@ Downloads run in WorkManager with resume (`.part` file + HTTP Range) and a progr
 
 ## Residency
 
-Per category: keep loaded, unload right after use, or unload after 1, 2, 5 or 15 minutes (default 2). A request for an unloaded model loads it again; clients do not manage this. Each category holds one model in a `LeasedResource`: every request takes a lease, and the idle timer starts when the last lease is returned. Requests of one category run one at a time through a `PriorityGate`, where waiting interactive requests go before waiting background ones.
+Per category: keep loaded, unload right after use, or unload after 1, 2, 5 or 15 minutes (default 2). A request for an unloaded model loads it again; clients do not manage this. Each category holds one model in a `LeasedResource`: every request takes a lease, and the idle timer starts when the last lease is returned. Requests of one category run one at a time through a `PriorityGate`, where waiting interactive requests go first (in arrival order) and waiting background requests are served round-robin by app: each app has its own queue, so one app indexing thousands of files delays another app's indexing by at most one request per turn. A waiter that is interrupted (a cancelled chat) leaves its queue.
 
 While a "keep loaded" model is in memory, `KeepAliveService` (foreground service, type `specialUse`, notification "N models in memory") keeps the host process alive; otherwise the process lives as long as clients are bound. Android may refuse to start the service while the host is in the background (Android 12+); it then starts the next time the host app is opened, and the model stays loaded only as long as the process does. On memory pressure (`onTrimMemory` at `RUNNING_LOW` or worse) idle models that are not "keep loaded" are unloaded.
 

@@ -51,7 +51,7 @@ class ModelRuntime(
         Categories.EMBEDDING to embedding, Categories.LLM to llm, Categories.OCR to ocrRes, Categories.ASR to asr,
     )
 
-    /** One request at a time per category, interactive first. */
+    /** One request at a time per category, interactive first, background requests round-robin by app. */
     val gates: Map<String, PriorityGate> = resources.keys.associateWith { PriorityGate() }
 
     private val litertCache get() = File(context.cacheDir, "litertlm")
