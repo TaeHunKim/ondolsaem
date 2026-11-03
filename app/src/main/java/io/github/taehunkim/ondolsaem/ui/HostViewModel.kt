@@ -112,9 +112,5 @@ class HostViewModel(app: Application) : AndroidViewModel(app) {
 
     fun label(pkg: String) = registry.label(pkg)
 
-    /** Apps that used [category] (for the model-change warning). */
-    fun appsUsing(category: String): List<String> =
-        clients.value.filter { category in it.value }.keys.map(::label).sorted()
-
     fun spec(id: String?) = id?.let(ModelCatalog::byId)
 }

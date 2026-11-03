@@ -26,6 +26,8 @@ Status: early development (0.1.0). The first client is [Nunsori / 눈소리](htt
 
 - [docs/architecture.md](docs/architecture.md): service contract, categories, residency, model-change notifications, access control
 - [docs/development.md](docs/development.md): build, scripts, SDK publishing, working with a client app
+- [docs/client-guide.md](docs/client-guide.md): using OndolSaem from an app
+- [docs/privacy.md](docs/privacy.md): what is stored, network, who can connect
 
 ## License
 

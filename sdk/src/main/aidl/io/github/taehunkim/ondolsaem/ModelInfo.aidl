@@ -13,4 +13,6 @@ parcelable ModelInfo {
     boolean audio;
     /** Chat: accepts images. */
     boolean vision;
+    /** Chat: context window in tokens (prompt + history + answer); clients budget their prompts with it. */
+    int contextTokens;
 }

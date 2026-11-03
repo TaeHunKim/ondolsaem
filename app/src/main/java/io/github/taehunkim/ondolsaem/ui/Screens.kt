@@ -145,6 +145,7 @@ fun ModelsScreen(vm: HostViewModel) {
     val active by vm.activeIds.collectAsState()
     val residency by vm.residency.collectAsState()
     val ctx by vm.chatContext.collectAsState()
+    val clients by vm.clients.collectAsState() // for the model-change warning
     var meteredFor by remember { mutableStateOf<ModelSpec?>(null) }
     var switchTo by remember { mutableStateOf<Pair<ModelCategory, ModelSpec>?>(null) }
 
@@ -205,7 +206,7 @@ fun ModelsScreen(vm: HostViewModel) {
     }
 
     switchTo?.let { (cat, spec) ->
-        val apps = vm.appsUsing(cat.id)
+        val apps = clients.filter { cat.id in it.value }.keys.map(vm::label).sorted()
         val appsText = if (apps.isEmpty()) stringResource(R.string.switch_no_apps) else apps.joinToString()
         AlertDialog(
             onDismissRequest = { switchTo = null },

@@ -8,7 +8,7 @@ One AIDL interface per model category, reached from a small entry point, so a ne
 
 | Interface | Methods |
 |---|---|
-| `IOndolSaem` (entry) | `apiVersion()`, `categories()`, `activeModel(category)` → `ModelInfo(category, id, displayName, version, ready, audio, vision)`, `getCapability(category)` → `IBinder`, `registerClient` / `unregisterClient(IClientCallback)`, `acquire(category, clientToken)` → `ILease` (keeps a model loaded, e.g. for one chat turn; dropped when the client process dies) |
+| `IOndolSaem` (entry) | `apiVersion()`, `categories()`, `activeModel(category)` → `ModelInfo(category, id, displayName, version, ready, audio, vision, contextTokens)`, `getCapability(category)` → `IBinder`, `registerClient` / `unregisterClient(IClientCallback)`, `acquire(category, clientToken)` → `ILease` (keeps a model loaded, e.g. for one chat turn; dropped when the client process dies) |
 | `IEmbeddingService` | `embedQuery`, `embedDocument`, `embedImage(pfd)`, `embedImages(pfd[])`, `embedAudio(pfd)`; every result carries `modelId` + `modelVersion` |
 | `IChatService` | `reply(request, IChatCallback, IToolExecutor, priority)` returns at once and streams tokens; tool calls are executed in the client through `IToolExecutor.execute(name, argsJson)`; `cancel(requestId)`, `reset()`. The conversation key is prefixed with the client package. |
 | `IOcrService` | `recognize(pfd)` |

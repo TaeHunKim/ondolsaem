@@ -20,6 +20,8 @@
 | 서비스 계약·카테고리·상주·알림·접근 제어 | `docs/architecture.md` |
 | 모델 추가·교체, 의존성, 라이선스 | `THIRD_PARTY_NOTICES.md`, (모델 문서 생기면) `docs/models.md` |
 | 빌드·스크립트·테스트·배포 방법 | `docs/development.md` |
+| 클라이언트 API 사용법 | `docs/client-guide.md` |
+| 권한·네트워크·저장 데이터 | `docs/privacy.md` |
 
 - 문자열은 `values/strings.xml`(en)과 `values-ko/strings.xml`(ko)의 키가 같아야 한다(`StringsParityTest`).
 - 모델 파일(*.litertlm, *.onnx 등)과 `app/libs/*.aar`은 git 제외.

@@ -88,6 +88,7 @@ class ModelRuntime(
             ready = usable(spec)
             audio = spec?.audio == true
             vision = spec?.vision == true
+            contextTokens = if (category == Categories.LLM) settings.chatContextTokens.first() else 0
         }
     }
 
