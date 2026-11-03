@@ -9,6 +9,8 @@ import android.os.DeadObjectException
 import android.os.IBinder
 import android.util.Log
 import io.github.taehunkim.ondolsaem.ChatRequest
+import io.github.taehunkim.ondolsaem.ClientInfo
+import io.github.taehunkim.ondolsaem.HostInfo
 import io.github.taehunkim.ondolsaem.EmbeddingResult
 import io.github.taehunkim.ondolsaem.IAsrService
 import io.github.taehunkim.ondolsaem.IChatCallback
@@ -75,16 +77,26 @@ class HostLease internal constructor(private val onClose: () -> Unit) : AutoClos
  * Connection to the OndolSaem model host. Binds on first use, rebinds after the host process died (calls are
  * retried once, except chat), and unbinds after [idleUnbindMs] without calls or leases. All calls are suspend
  * functions that run on [Dispatchers.IO]; they throw [HostUnavailableException] or [HostCallException].
+ *
+ * Versions: on every (re)connection the client sends its API level and SDK release (`hello`) and receives the
+ * host's ([hostInfo]). A host below [minHostApi] fails with [HostUnavailableException.Reason.HOST_TOO_OLD]; so does
+ * a call that needs a newer level than the host has (each method checks the level that added it). A host that no
+ * longer serves this client's level answers [HostUnavailableException.Reason.CLIENT_TOO_OLD].
  */
 class OndolSaemClient(
     context: Context,
     private val idleUnbindMs: Long = 60_000,
     private val connectTimeoutMs: Long = 15_000,
+    /** Lowest host API level this app works with at all. */
+    private val minHostApi: Int = OndolSaem.Api.V1,
+    /** The API level reported to the host; only tests set it. */
+    private val clientApi: Int = OndolSaem.API_VERSION,
 ) {
     private val app = context.applicationContext
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lock = Mutex()
     @Volatile private var host: IOndolSaem? = null
+    @Volatile private var info: HostInfo? = null
     private var connection: ServiceConnection? = null
     private val active = AtomicInteger(0)
     private var unbindJob: Job? = null
@@ -114,6 +126,12 @@ class OndolSaemClient(
     // ---- entry point -------------------------------------------------------------------------------------------
 
     suspend fun apiVersion(): Int = call { it.apiVersion() }
+
+    /** The connected host's versions (connects first). */
+    suspend fun hostInfo(): HostInfo = call { info ?: error("not connected") }
+
+    /** Whether the host implements API level [api] (see [OndolSaem.Api]). */
+    suspend fun supports(api: Int): Boolean = hostInfo().apiVersion >= api
     suspend fun categories(): List<ModelInfo> = call { it.categories().toList() }
     suspend fun activeModel(category: String): ModelInfo? = call { it.activeModel(category) }
 
@@ -285,15 +303,21 @@ class OndolSaemClient(
     }
 
     /** Runs [block] against a connected host on the IO dispatcher; reconnects and retries once if the host died. */
-    suspend fun <T> call(retry: Boolean = true, block: (IOndolSaem) -> T): T = withContext(Dispatchers.IO) {
+    suspend fun <T> call(retry: Boolean = true, minApi: Int = OndolSaem.Api.V1, block: (IOndolSaem) -> T): T = withContext(Dispatchers.IO) {
         begin()
-        try { attempt(retry, block) } finally { end() }
+        try { attempt(retry, minApi, block) } finally { end() }
     }
 
-    private suspend fun <T> attempt(retry: Boolean, block: (IOndolSaem) -> T): T {
+    private suspend fun <T> attempt(retry: Boolean, minApi: Int, block: (IOndolSaem) -> T): T {
         var attempt = 0
         while (true) {
             val h = connect()
+            val hostApi = info?.apiVersion ?: 0
+            if (hostApi < minApi) {
+                throw HostUnavailableException(
+                    HostUnavailableException.Reason.HOST_TOO_OLD, "needs OndolSaem API $minApi, host has $hostApi",
+                )
+            }
             try {
                 return block(h)
             } catch (e: DeadObjectException) {
@@ -315,8 +339,20 @@ class OndolSaemClient(
         val h = withTimeoutOrNull(connectTimeoutMs) { bind() }
             ?: run { disconnectLocked(); throw HostUnavailableException(HostUnavailableException.Reason.NO_ANSWER, "bind timeout") }
         try {
-            if (h.apiVersion() < 1) throw HostUnavailableException(HostUnavailableException.Reason.TOO_OLD)
-            h.registerClient(callback)
+            val hostApi = h.apiVersion()
+            if (hostApi < minHostApi) {
+                throw HostUnavailableException(HostUnavailableException.Reason.HOST_TOO_OLD, "OndolSaem API $hostApi, need $minHostApi")
+            }
+            info = h.hello(ClientInfo().apply { apiVersion = clientApi; sdkVersion = OndolSaem.SDK_VERSION }, callback)
+        } catch (e: HostUnavailableException) {
+            disconnectLocked(); throw e
+        } catch (e: IllegalStateException) {
+            disconnectLocked()
+            val err = HostErrors.decode(e) ?: throw e
+            if (err.code == OndolSaem.Errors.CLIENT_TOO_OLD) {
+                throw HostUnavailableException(HostUnavailableException.Reason.CLIENT_TOO_OLD, err.message)
+            }
+            throw err
         } catch (e: SecurityException) {
             disconnectLocked()
             throw HostUnavailableException(HostUnavailableException.Reason.NOT_ALLOWED, e.message, e)
@@ -367,6 +403,7 @@ class OndolSaemClient(
     private fun disconnectLocked() {
         host?.let { h -> runCatching { h.unregisterClient(callback) } }
         host = null
+        info = null
         connection?.let { runCatching { app.unbindService(it) } }
         connection = null
         _connected.value = false

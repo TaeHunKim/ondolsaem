@@ -5,10 +5,19 @@ import java.io.IOException
 /** Base class of SDK failures. */
 open class OndolSaemException(message: String?, cause: Throwable? = null) : IOException(message, cause)
 
-/** The host app is not installed, refused the connection, or did not answer. */
+/** The host app is not installed, refused the connection, did not answer, or the versions do not fit. */
 class HostUnavailableException(val reason: Reason, message: String? = null, cause: Throwable? = null) :
     OndolSaemException(message ?: reason.name, cause) {
-    enum class Reason { NOT_INSTALLED, NOT_ALLOWED, NO_ANSWER, TOO_OLD }
+    enum class Reason {
+        NOT_INSTALLED,
+        /** The host does not trust this app's signing key. */
+        NOT_ALLOWED,
+        NO_ANSWER,
+        /** The host's API level is lower than this call (or this client) needs: update OndolSaem. */
+        HOST_TOO_OLD,
+        /** The host no longer serves this client's API level: update the client app. */
+        CLIENT_TOO_OLD,
+    }
 }
 
 /** The host answered with an error (see [OndolSaem.Errors]). */

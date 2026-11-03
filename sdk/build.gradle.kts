@@ -14,8 +14,9 @@ android {
     defaultConfig {
         minSdk = 29
         consumerProguardFiles("consumer-rules.pro")
+        buildConfigField("String", "SDK_VERSION", "\"$version\"")
     }
-    buildFeatures { aidl = true }
+    buildFeatures { aidl = true; buildConfig = true }
     publishing { singleVariant("release") { withSourcesJar() } }
 }
 

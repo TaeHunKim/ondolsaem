@@ -7,7 +7,10 @@ import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.util.Log
+import io.github.taehunkim.ondolsaem.BuildConfig
 import io.github.taehunkim.ondolsaem.ChatRequest
+import io.github.taehunkim.ondolsaem.ClientInfo
+import io.github.taehunkim.ondolsaem.HostInfo
 import io.github.taehunkim.ondolsaem.EmbeddingResult
 import io.github.taehunkim.ondolsaem.IAsrService
 import io.github.taehunkim.ondolsaem.IChatCallback
@@ -87,7 +90,7 @@ class HostService : Service() {
     }
 
     private val entry = object : IOndolSaem.Stub() {
-        override fun apiVersion(): Int { caller.require(); return OndolSaem.API_VERSION }
+        override fun apiVersion(): Int { caller.require(); return container.apiVersion }
 
         override fun categories(): Array<ModelInfo> {
             caller.require()
@@ -113,10 +116,21 @@ class HostService : Service() {
             }
         }
 
-        override fun registerClient(callback: IClientCallback) {
+        override fun hello(client: ClientInfo, callback: IClientCallback): HostInfo {
             val pkg = caller.require()
-            registry.touch(pkg, null)
+            registry.hello(pkg, client.apiVersion, client.sdkVersion.orEmpty())
+            if (client.apiVersion < container.minClientApi) {
+                Log.w(TAG, "$pkg uses client API ${client.apiVersion}, below ${container.minClientApi}")
+                throw HostErrors.encode(
+                    OndolSaem.Errors.CLIENT_TOO_OLD, "client API ${client.apiVersion} < required ${container.minClientApi}",
+                )
+            }
             container.notifier.callbacks.register(callback, pkg)
+            return HostInfo().apply {
+                apiVersion = container.apiVersion
+                minClientApi = container.minClientApi
+                appVersion = BuildConfig.VERSION_NAME
+            }
         }
 
         override fun unregisterClient(callback: IClientCallback) {

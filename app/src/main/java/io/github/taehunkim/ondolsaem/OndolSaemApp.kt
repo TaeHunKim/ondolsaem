@@ -27,6 +27,22 @@ class HostContainer(val app: Application) {
     val registry = ClientRegistry(app, settings, scope)
     val notifier = ModelChangeNotifier(app, settings)
 
+    /**
+     * API level this host reports (normally the SDK's [io.github.taehunkim.ondolsaem.sdk.OndolSaem.API_VERSION];
+     * tests lower it to act as an older host).
+     */
+    @Volatile var apiVersion: Int = io.github.taehunkim.ondolsaem.sdk.OndolSaem.API_VERSION
+
+    /**
+     * Oldest client API level still served. Raise it only when an old contract can no longer be honoured; those
+     * apps then ask their users to update.
+     */
+    @Volatile var minClientApi: Int = MIN_CLIENT_API
+
+    companion object {
+        const val MIN_CLIENT_API = io.github.taehunkim.ondolsaem.sdk.OndolSaem.Api.V1
+    }
+
     /** The user picked another model for [category]. */
     suspend fun selectModel(category: String, id: String) {
         if (settings.activeModelId(category).first() == id) return

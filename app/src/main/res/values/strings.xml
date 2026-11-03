@@ -103,4 +103,6 @@
     <string name="settings_about_body">OndolSaem keeps on-device AI models for other apps. Models run on this phone; nothing you search, say or show is sent anywhere.</string>
     <string name="model_verifying">Checking the file…</string>
     <string name="model_err_corrupt">The downloaded file was damaged and has been deleted. Retry to download it again.</string>
+    <string name="apps_sdk">SDK %1$s · API %2$d</string>
+    <string name="settings_min_client_api">Oldest supported client API</string>
 </resources>

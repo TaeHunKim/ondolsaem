@@ -8,7 +8,7 @@ One AIDL interface per model category, reached from a small entry point, so a ne
 
 | Interface | Methods |
 |---|---|
-| `IOndolSaem` (entry) | `apiVersion()`, `categories()`, `activeModel(category)` → `ModelInfo(category, id, displayName, version, ready, audio, vision, contextTokens)`, `getCapability(category)` → `IBinder`, `registerClient` / `unregisterClient(IClientCallback)`, `acquire(category, clientToken)` → `ILease` (keeps a model loaded, e.g. for one chat turn; dropped when the client process dies) |
+| `IOndolSaem` (entry) | `apiVersion()`, `categories()`, `activeModel(category)` → `ModelInfo(category, id, displayName, version, ready, audio, vision, contextTokens)`, `getCapability(category)` → `IBinder`, `hello(ClientInfo, IClientCallback)` → `HostInfo` (version exchange, see below), `unregisterClient(IClientCallback)`, `acquire(category, clientToken)` → `ILease` (keeps a model loaded, e.g. for one chat turn; dropped when the client process dies) |
 | `IEmbeddingService` | `embedQuery`, `embedDocument`, `embedImage(pfd)`, `embedImages(pfd[])`, `embedAudio(pfd)`; every result carries `modelId` + `modelVersion` |
 | `IChatService` | `reply(request, IChatCallback, IToolExecutor, priority)` returns at once and streams tokens; tool calls are executed in the client through `IToolExecutor.execute(name, argsJson)`; `cancel(requestId)`, `reset()`. The conversation key is prefixed with the client package. |
 | `IOcrService` | `recognize(pfd)` |
@@ -18,6 +18,16 @@ One AIDL interface per model category, reached from a small entry point, so a ne
 - Every request carries a priority: `INTERACTIVE` (chat, search queries) runs before `BACKGROUND` (indexing).
 - Errors: `ServiceSpecificException` is not public API, so the host throws `IllegalStateException("ondolsaem:<code>:<message>")` (`HostErrors`), which the client turns into `HostCallException(code)` with the codes in `OndolSaem.Errors` (`MODEL_NOT_READY`, `MODEL_FAILED`, `BAD_INPUT`, `CANCELLED`). A refused caller gets a `SecurityException` (client: `HostUnavailableException(NOT_ALLOWED)`).
 - `OndolSaemClient` in the SDK binds on first use (`BIND_AUTO_CREATE | BIND_IMPORTANT`), retries a call once when the host process died (not chat), unbinds after an idle minute, detects a missing host (`isInstalled()`, `launchIntent()`), and exposes suspend functions and a chat `Flow`.
+
+## Versioning
+
+Host and clients are updated independently, so every connection starts with a version exchange:
+
+- `OndolSaem.API_VERSION` (SDK) is the contract level; named levels live in `OndolSaem.Api` (`V1` = everything in this document). A change to the contract (new method, new parcelable field, new category, changed meaning) bumps it, and the new method's doc names its level.
+- On every (re)connection the client calls `apiVersion()` (never changes) and then `hello(ClientInfo(apiVersion, sdkVersion))`. The host answers `HostInfo(apiVersion, minClientApi, appVersion)`.
+- **Host older than the client needs:** the client refuses to connect when `apiVersion()` is below its `minHostApi`, and every SDK call checks the level it needs (`call(minApi = …)`) before sending anything, so an older host never receives a transaction it does not know. Both end in `HostUnavailableException(HOST_TOO_OLD)`: the client tells the user to update OndolSaem. `supports(level)` lets a client switch features off instead.
+- **Client older than the host serves:** `hello` fails with `CLIENT_TOO_OLD` when the client's level is below `HostContainer.MIN_CLIENT_API` (`HostUnavailableException(CLIENT_TOO_OLD)`): the client tells the user to update itself. Raise the minimum only when an old contract can no longer be honoured; until then a newer host serves every older level (same transaction ids, appended parcelable fields are skipped by old readers).
+- The Apps tab shows each client's SDK release and level; Settings › About shows the host's level and the minimum.
 
 ## Categories
 

@@ -299,6 +299,7 @@ private fun ModelRow(
 fun AppsScreen(vm: HostViewModel) {
     val clients by vm.clients.collectAsState()
     val usage by vm.registry.usage.collectAsState()
+    val versions by vm.registry.versions.collectAsState()
     LazyColumn(Modifier.testTag("apps")) {
         if (clients.isEmpty()) item {
             Text(stringResource(R.string.apps_empty), Modifier.padding(16.dp))
@@ -306,6 +307,14 @@ fun AppsScreen(vm: HostViewModel) {
         items(clients.keys.sorted()) { pkg ->
             SectionCard(vm.label(pkg)) {
                 Text(pkg, style = MaterialTheme.typography.bodySmall)
+                versions[pkg]?.let { v ->
+                    Text(
+                        stringResource(R.string.apps_sdk, v.sdkVersion, v.apiVersion),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (v.apiVersion < io.github.taehunkim.ondolsaem.HostContainer.MIN_CLIENT_API) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 val cats = clients[pkg].orEmpty()
                 cats.sorted().forEach { catId ->
                     val cat = ModelCategories.byId(catId)
@@ -350,6 +359,7 @@ fun SettingsScreen(vm: HostViewModel) {
             SectionCard(stringResource(R.string.settings_about)) {
                 KeyValue(stringResource(R.string.settings_version), BuildConfig.VERSION_NAME)
                 KeyValue(stringResource(R.string.settings_api), io.github.taehunkim.ondolsaem.sdk.OndolSaem.API_VERSION.toString())
+                KeyValue(stringResource(R.string.settings_min_client_api), io.github.taehunkim.ondolsaem.HostContainer.MIN_CLIENT_API.toString())
                 Text(stringResource(R.string.settings_about_body), style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.width(1.dp))
                 Text(context.packageName, style = MaterialTheme.typography.bodySmall)

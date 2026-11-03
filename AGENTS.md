@@ -6,7 +6,8 @@
 - `:app`: 호스트 앱. 버전은 `app/build.gradle.kts`의 `appVersionName` 한 곳.
 
 ## 계약 규칙 (sdk)
-- AIDL 메서드는 **끝에만 추가**한다. 순서 변경·삭제·시그니처 변경 금지. 새 메서드를 넣으면 `OndolSaem.API_VERSION`과 `IOndolSaem.apiVersion()` 반환값을 올리고, 클라이언트는 `apiVersion()`으로 확인 후 호출한다.
+- AIDL 메서드는 **끝에만 추가**한다(고정 트랜잭션 id). 순서 변경·삭제·시그니처 변경 금지. parcelable 필드도 끝에만 추가.
+- 계약을 바꾸면 `OndolSaem.Api`에 새 레벨(`V2`…)을 추가하고 `API_VERSION`을 올리며, 새 메서드 주석에 레벨을 적고 SDK 호출부에서 `call(minApi = Api.Vx)`로 막는다. 연결 시 `hello(ClientInfo) → HostInfo`로 버전을 주고받는다. `HostContainer.MIN_CLIENT_API`는 옛 계약을 더 이상 지킬 수 없을 때만 올린다. 자세히: `docs/architecture.md` "Versioning".
 - 새 모델 카테고리는 새 AIDL 인터페이스로 추가한다(기존 인터페이스 수정 금지).
 - 큰 데이터(이미지, 오디오)는 Binder 1MB 한도 때문에 `ParcelFileDescriptor`로 보낸다.
 - sdk를 바꾸면 클라이언트(눈소리) 빌드도 확인한다: 눈소리 `local.properties`에 `ondolsaem.dir=../ondolsaem`.

@@ -17,8 +17,20 @@ object OndolSaem {
     const val EXTRA_CATEGORY = "category"
     const val EXTRA_MODEL_ID = "model_id"
 
-    /** Highest API level this SDK understands; compare with IOndolSaem.apiVersion(). */
-    const val API_VERSION = 1
+    /**
+     * API level of this SDK: the contract it was built against. Bump it whenever a method, parcelable field or
+     * category is added, and note the level on the new method ([Api]).
+     */
+    const val API_VERSION = Api.V1
+
+    /** Release of this SDK (build.gradle.kts `version`). */
+    val SDK_VERSION: String get() = BuildConfig.SDK_VERSION
+
+    /** API levels, named so call sites say which level a feature needs. */
+    object Api {
+        /** hello, categories, activeModel, acquire; embedding, chat, OCR and speech services. */
+        const val V1 = 1
+    }
 
     /** Requests a user is waiting for (chat, search queries) run before [PRIORITY_BACKGROUND] ones (indexing). */
     const val PRIORITY_INTERACTIVE = 0
@@ -42,5 +54,7 @@ object OndolSaem {
         const val BAD_INPUT = 3
         /** The request was cancelled. */
         const val CANCELLED = 4
+        /** The client's API level is below the host's minimum: the client app must be updated. */
+        const val CLIENT_TOO_OLD = 5
     }
 }

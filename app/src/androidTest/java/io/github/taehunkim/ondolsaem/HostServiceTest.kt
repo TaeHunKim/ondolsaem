@@ -16,6 +16,7 @@ import io.github.taehunkim.ondolsaem.runtime.Residency
 import io.github.taehunkim.ondolsaem.sdk.ChatStreamEvent
 import io.github.taehunkim.ondolsaem.sdk.HistoryTurn
 import io.github.taehunkim.ondolsaem.sdk.HostCallException
+import io.github.taehunkim.ondolsaem.sdk.HostUnavailableException
 import io.github.taehunkim.ondolsaem.sdk.OndolSaem
 import io.github.taehunkim.ondolsaem.sdk.OndolSaem.Categories
 import io.github.taehunkim.ondolsaem.sdk.OndolSaemClient
@@ -123,6 +124,8 @@ class HostServiceTest {
     }
 
     @After fun tearDown() = runBlocking {
+        container.apiVersion = OndolSaem.API_VERSION
+        container.minClientApi = HostContainer.MIN_CLIENT_API
         runtime.readyOverride = null
         client.disconnect()
         for (c in listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR)) runtime.unload(c)
@@ -246,5 +249,57 @@ class HostServiceTest {
         assertTrue(client.connected.value)
         withTimeout(5_000) { while (client.connected.value) delay(50) }
         assertEquals(OndolSaem.API_VERSION, client.apiVersion())
+    }
+
+    // ---- versions --------------------------------------------------------------------------------------------
+
+    @Test fun helloExchangesVersions() = runBlocking {
+        val info = client.hostInfo()
+        assertEquals(OndolSaem.API_VERSION, info.apiVersion)
+        assertEquals(HostContainer.MIN_CLIENT_API, info.minClientApi)
+        assertEquals(BuildConfig.VERSION_NAME, info.appVersion)
+        assertTrue(client.supports(OndolSaem.Api.V1))
+        assertFalse(client.supports(OndolSaem.API_VERSION + 1))
+    }
+
+    @Test fun aClientBelowTheHostMinimumIsRefused() = runBlocking {
+        container.minClientApi = OndolSaem.API_VERSION + 1
+        try {
+            client.embedQuery("x"); fail("expected CLIENT_TOO_OLD")
+        } catch (e: HostUnavailableException) {
+            assertEquals(HostUnavailableException.Reason.CLIENT_TOO_OLD, e.reason)
+        }
+        assertFalse("not left connected", client.connected.value)
+    }
+
+    @Test fun aClientThatNeedsANewerHostSaysSo() = runBlocking {
+        val demanding = OndolSaemClient(ctx, idleUnbindMs = 500, minHostApi = OndolSaem.API_VERSION + 1)
+        try {
+            demanding.apiVersion(); fail("expected HOST_TOO_OLD")
+        } catch (e: HostUnavailableException) {
+            assertEquals(HostUnavailableException.Reason.HOST_TOO_OLD, e.reason)
+        } finally { demanding.disconnect() }
+    }
+
+    @Test fun aCallFromANewerLevelIsStoppedBeforeReachingAnOlderHost() = runBlocking {
+        val newer = OndolSaem.API_VERSION + 1
+        try {
+            client.call(minApi = newer) { it.categories() }; fail("expected HOST_TOO_OLD")
+        } catch (e: HostUnavailableException) {
+            assertEquals(HostUnavailableException.Reason.HOST_TOO_OLD, e.reason)
+        }
+        // once the host reports that level, the same call goes through
+        container.apiVersion = newer
+        client.disconnect(); delay(200)
+        assertTrue(client.supports(newer))
+        assertEquals(4, client.call(minApi = newer) { it.categories() }.size)
+    }
+
+    @Test fun anOlderClientLevelIsStillServedWhileAboveTheMinimum() = runBlocking {
+        container.apiVersion = OndolSaem.API_VERSION + 3 // a much newer host
+        val old = OndolSaemClient(ctx, idleUnbindMs = 500, clientApi = HostContainer.MIN_CLIENT_API)
+        try {
+            assertEquals("eg2-440m", old.embedQuery("hello").modelId)
+        } finally { old.disconnect() }
     }
 }

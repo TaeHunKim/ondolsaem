@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
+/** The SDK a client app was built with, as it reported in hello(). */
+data class ClientVersion(val apiVersion: Int, val sdkVersion: String)
+
 /** Usage of one category by one client app since the host process started. */
 data class CategoryUsage(val requests: Int = 0, val totalMs: Long = 0, val lastUse: Long = 0, val failures: Int = 0) {
     val averageMs: Long get() = if (requests == 0) 0 else totalMs / requests
@@ -24,6 +27,15 @@ class ClientRegistry(private val context: Context, private val settings: HostSet
     val usage: StateFlow<Map<String, Map<String, CategoryUsage>>> = _usage.asStateFlow()
 
     private val recorded = ConcurrentHashMap.newKeySet<String>()
+
+    private val _versions = MutableStateFlow<Map<String, ClientVersion>>(emptyMap())
+    /** SDK versions of the clients that connected since the host started. */
+    val versions: StateFlow<Map<String, ClientVersion>> = _versions.asStateFlow()
+
+    fun hello(pkg: String, apiVersion: Int, sdkVersion: String) {
+        touch(pkg, null)
+        if (pkg != context.packageName) _versions.update { it + (pkg to ClientVersion(apiVersion, sdkVersion)) }
+    }
 
     /** Remembers that [pkg] uses [category] (stored once per pair and process). */
     fun touch(pkg: String, category: String?) {
