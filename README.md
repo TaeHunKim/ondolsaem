@@ -28,6 +28,7 @@ Status: early development (0.2.0). The first client is [Nunsori / 눈소리](htt
 - [docs/development.md](docs/development.md): build, scripts, SDK publishing, working with a client app
 - [docs/client-guide.md](docs/client-guide.md): using OndolSaem from an app
 - [docs/privacy.md](docs/privacy.md): what is stored, network, who can connect
+- [docs/roadmap.md](docs/roadmap.md): planned work
 
 ## License
 

@@ -28,6 +28,7 @@
 - [docs/development.md](docs/development.md): 빌드, 스크립트, SDK 배포, 클라이언트 앱과 함께 작업하기
 - [docs/client-guide.md](docs/client-guide.md): 앱에서 온돌샘 쓰기
 - [docs/privacy.md](docs/privacy.md): 저장 데이터, 네트워크, 연결 허용 범위
+- [docs/roadmap.md](docs/roadmap.md): 앞으로 할 일
 
 ## 라이선스
 
