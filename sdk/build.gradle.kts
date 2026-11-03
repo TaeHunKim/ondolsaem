@@ -3,8 +3,8 @@ plugins {
     `maven-publish`
 }
 
-// Client SDK version (git tag on release; JitPack coordinates com.github.taehunkim.ondolsaem:sdk:<tag>).
-// group/name must match the dependency Nunsori declares so a Gradle composite build substitutes this project.
+// Client SDK version (git tag sdk-vX.Y.Z on release). JitPack serves the only artifact of the repository as
+// com.github.TaeHunKim:ondolsaem:<tag>; clients substitute that module with this project in a composite build.
 group = "com.github.taehunkim.ondolsaem"
 version = "0.2.0"
 

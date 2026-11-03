@@ -20,7 +20,7 @@
 | 상주 | 카테고리별로 상시 상주, 사용 직후 내림, N분 후 내림. 내려간 모델은 다음 요청 때 자동으로 다시 올림. Android가 백그라운드 실행을 거부하면 알림과 대시보드 카드로 배터리 최적화 끄기를 안내 |
 | 대시보드 | 기기 메모리, 온돌샘의 메모리 사용량, 올라간 모델과 그 모델을 쓰는 앱 |
 | 앱 | 온돌샘을 쓰는 앱과 카테고리, 요청 통계. 내 앱(같은 서명 키 또는 허용한 키)은 바로 연결, 다른 앱은 먼저 요청하고 여기서 허용·거부·취소 |
-| 클라이언트 SDK | `com.github.taehunkim.ondolsaem:sdk`, [docs/architecture.md](docs/architecture.md) 참고 |
+| 클라이언트 SDK | JitPack의 `com.github.TaeHunKim:ondolsaem:<태그>`, [docs/architecture.md](docs/architecture.md) 참고 |
 
 ## 문서
 

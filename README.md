@@ -20,7 +20,7 @@ Status: early development (0.2.0). The first client is [Nunsori / 눈소리](htt
 | Residency | Per category: keep loaded, unload right after use, or unload after N minutes. Unloaded models are loaded again on the next request. If Android refuses to keep the host running in the background, a notification and a dashboard card offer to turn off battery optimization |
 | Dashboard | Device memory, the host's memory use, loaded models and which apps hold them |
 | Apps | Apps that use the host, their categories and request statistics; own apps (same signing key or an allowed key) connect directly; other apps ask first and are allowed, denied or revoked here |
-| Client SDK | `com.github.taehunkim.ondolsaem:sdk`, see [docs/architecture.md](docs/architecture.md) |
+| Client SDK | `com.github.TaeHunKim:ondolsaem:<tag>` on JitPack, see [docs/architecture.md](docs/architecture.md) |
 
 ## Documentation
 
