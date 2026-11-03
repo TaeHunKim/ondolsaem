@@ -139,6 +139,8 @@ class OndolSaemApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // before anything reads the settings (the default embedding model depends on it)
+        kotlinx.coroutines.runBlocking { HostUpgrade.run(HostSettings(this@OndolSaemApp), filesDir, BuildConfig.VERSION_CODE) }
         container = HostContainer(this)
         Notifications.ensureChannels(this)
         container.watchKeepAlive()

@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import io.github.taehunkim.ondolsaem.catalog.ModelCategories
 import io.github.taehunkim.ondolsaem.runtime.Residency
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore("host_settings")
@@ -23,6 +24,8 @@ class HostSettings(private val context: Context) {
     private val chatContextKey = intPreferencesKey("chat_context_tokens")
     private val clientsKey = stringSetPreferencesKey("clients")
     private val approvalsKey = stringPreferencesKey("approvals")
+    private val lastVersionKey = intPreferencesKey("last_version_code")
+    private val onboardingKey = androidx.datastore.preferences.core.booleanPreferencesKey("onboarding_done")
     private fun clientCategoriesKey(pkg: String) = stringSetPreferencesKey("client_categories_$pkg")
 
     fun activeModelId(category: String): Flow<String> = store.data.map {
@@ -30,6 +33,20 @@ class HostSettings(private val context: Context) {
     }
 
     suspend fun setActiveModel(category: String, id: String) { store.edit { it[activeKey(category)] = id } }
+
+    /** True when the user (or an upgrade step) stored a model for [category]; false = the category default applies. */
+    suspend fun hasActiveModel(category: String): Boolean = store.data.first().contains(activeKey(category))
+
+    /** Any model or memory choice stored (an install that was used before versions were recorded). */
+    suspend fun hasStoredChoices(): Boolean = store.data.first().asMap().keys.any { it.name.startsWith("active_") || it.name.startsWith("residency_") }
+
+    /** versionCode of the last run (0 = fresh install or a version before 0.4.0), see HostUpgrade. */
+    val lastVersionCode: Flow<Int> = store.data.map { it[lastVersionKey] ?: 0 }
+    suspend fun setLastVersionCode(v: Int) { store.edit { it[lastVersionKey] = v } }
+
+    /** The first-run screens were completed (or skipped by an upgrade). */
+    val onboardingDone: Flow<Boolean> = store.data.map { it[onboardingKey] ?: false }
+    suspend fun setOnboardingDone(done: Boolean) { store.edit { it[onboardingKey] = done } }
 
     fun residency(category: String): Flow<Residency> = store.data.map { p ->
         p[residencyKey(category)]?.let { runCatching { Residency.valueOf(it) }.getOrNull() }

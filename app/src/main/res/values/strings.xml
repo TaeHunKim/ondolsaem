@@ -125,4 +125,31 @@
     <string name="approvals_allow">Allow</string>
     <string name="approvals_deny">Deny</string>
     <string name="approvals_revoke">Revoke</string>
+    <string name="onb_step">Step %1$d of %2$d</string>
+    <string name="onb_back">Back</string>
+    <string name="onb_next">Next</string>
+    <string name="onb_finish">Start</string>
+    <string name="onb_intro_title">Welcome to OndolSaem</string>
+    <string name="onb_intro_body">OndolSaem keeps on-device AI models for your other apps, such as Nunsori.</string>
+    <string name="onb_intro_point_shared">A model is downloaded and loaded once, and every app that needs it shares it.</string>
+    <string name="onb_intro_point_local">Everything runs on this phone. Your photos, recordings and texts never leave it.</string>
+    <string name="onb_intro_point_apps">Only your own apps can use it; other apps have to ask you first.</string>
+    <string name="onb_apps_title">Apps on this phone</string>
+    <string name="onb_apps_body">These apps already use OndolSaem, for:</string>
+    <string name="onb_apps_none">No app has connected yet. Apps that use OndolSaem show up here and in the Apps tab.</string>
+    <string name="onb_models_title">Recommended models</string>
+    <string name="onb_models_body">One model per kind of task. Ticked are the ones your apps need. You can change them later in the Models tab.</string>
+    <string name="onb_models_builtin">built in</string>
+    <string name="onb_models_installed">downloaded</string>
+    <string name="onb_models_downloading">downloading</string>
+    <string name="onb_models_download">Download selected (%1$s)</string>
+    <string name="onb_models_later">Downloads continue in the background; Wi-Fi is recommended. You can also skip this and download later.</string>
+    <plurals name="onb_models_count">
+        <item quantity="one">%d model</item>
+        <item quantity="other">%d models</item>
+    </plurals>
+    <string name="onb_notif_title">Notifications</string>
+    <string name="onb_notif_body">OndolSaem shows download progress, and a notification while models are kept in memory (Android needs it to keep them loaded). It also tells you when an app asks to use it.</string>
+    <string name="onb_notif_allow">Allow notifications</string>
+    <string name="onb_notif_allowed">Notifications are allowed.</string>
 </resources>

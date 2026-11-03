@@ -46,7 +46,7 @@ A category is a registry entry (string id, title, description, change impact, de
 | OCR, speech recognition | `DERIVED_DATA`: notice that derived text may change |
 | Chat LLM | `NONE` |
 
-Each category has curated models with descriptions; one model is the category default (stored in DataStore, `HostSettings`). Clients always use the default of a category. A category whose default is not downloaded answers `MODEL_NOT_READY`; speech still offers voice activity detection (Silero VAD is bundled).
+Each category has curated models with descriptions; one model is the category default (stored in DataStore, `HostSettings`; until the user picks one, `ModelCategory.defaultModelId` applies). The embedding default is EmbeddingGemma 2 740M (`eg2-740m`) since 0.4.0 because it also embeds audio; installs from before 0.4.0 that never picked a model keep 440M, pinned by `HostUpgrade` (otherwise every client would re-index). Clients always use the default of a category. A category whose default is not downloaded answers `MODEL_NOT_READY`; speech still offers voice activity detection (Silero VAD is bundled).
 
 ## Downloads
 
@@ -74,6 +74,10 @@ Own apps connect directly; other apps need the user's approval. The service is e
 Any other caller goes through `Approvals` (stored as JSON in `host_settings`): a decision is kept per package **and** signing-certificate digest (SHA-256 of all signers), so an app re-signed with another key asks again. `CallerCheck.decide` returns ALLOW, DENY, ASK (unknown app or new key: record a `PENDING` request and post the notification *"<app> wants to use OndolSaem"*, which opens the Apps tab) or WAIT (already pending). Refusals are thrown as `SecurityException` whose message carries `Errors.NOT_APPROVED` in the `HostErrors` format: SDK 0.2.0 turns it into `HostUnavailableException.Reason.NOT_APPROVED`, older clients still see `NOT_ALLOWED`, so no new API level was needed. The Apps tab lists these apps under *Other apps* (signing-key fingerprint, last request) with Allow / Deny / Revoke / Forget; clients can open it with `OndolSaem.approvalIntent()` (action `ACTION_APPROVE`, own task). Allowed callers are cached per uid; any decision clears the cache, so a revoke applies to the next call.
 
 A custom `signature` permission was dropped on purpose: Android grants a permission only if its defining app is installed first, so a client installed before the host would never get it. Third-party apps therefore use the approval path above instead of a permission.
+
+## First run and upgrades
+
+`HostUpgrade.run` (from `OndolSaemApp.onCreate`, before anything reads the settings) compares the stored `last_version_code` with the app's versionCode. Versions before 0.4.0 stored none, so an install counts as existing when it has downloaded models, known client apps or stored choices; such an install keeps the 440M embedding default and skips the first-run screens. A fresh install shows `ui/OnboardingScreen` instead of the tabs until it is finished (`onboarding_done`): what OndolSaem is, the apps already connected and what they use, the default model of every category with size (ticked: the categories the connected apps asked for, or all but chat when none is connected; downloads go through the usual worker, with the metered-network question), and the notification permission (asked here instead of on every start).
 
 ## Dashboard
 

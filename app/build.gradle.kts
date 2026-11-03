@@ -4,7 +4,7 @@ plugins {
 }
 
 // Single place to bump the app version: major.minor.patch, versionCode = major*10000 + minor*100 + patch.
-val appVersionName = "0.3.0"
+val appVersionName = "0.4.0"
 val appVersionCode = appVersionName.split(".").let { (a, b, c) -> a.toInt() * 10000 + b.toInt() * 100 + c.toInt() }
 
 android {
@@ -70,4 +70,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

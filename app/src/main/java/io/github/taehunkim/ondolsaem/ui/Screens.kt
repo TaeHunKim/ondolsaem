@@ -205,19 +205,10 @@ fun ModelsScreen(vm: HostViewModel) {
     }
 
     meteredFor?.let { spec ->
-        AlertDialog(
-            onDismissRequest = { meteredFor = null },
-            title = { Text(stringResource(R.string.metered_title)) },
-            text = { Text(stringResource(R.string.metered_body, spec.displayName, spec.sizeBytes?.let(::formatBytes) ?: "?")) },
-            confirmButton = {
-                TextButton(onClick = { vm.download(spec.id, wifiOnly = false); meteredFor = null }) { Text(stringResource(R.string.metered_now)) }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(onClick = { meteredFor = null }) { Text(stringResource(R.string.action_cancel)) }
-                    TextButton(onClick = { vm.download(spec.id, wifiOnly = true); meteredFor = null }) { Text(stringResource(R.string.metered_wifi)) }
-                }
-            },
+        MeteredDialog(
+            spec.displayName, spec.sizeBytes?.let(::formatBytes) ?: "?",
+            onDownload = { wifiOnly -> vm.download(spec.id, wifiOnly); meteredFor = null },
+            onCancel = { meteredFor = null },
         )
     }
 
@@ -419,4 +410,21 @@ fun SettingsScreen(vm: HostViewModel) {
             }
         }
     }
+}
+
+/** Asks before downloading [what] ([size]) on a metered network: now, or wait for Wi-Fi. */
+@Composable
+fun MeteredDialog(what: String, size: String, onDownload: (wifiOnly: Boolean) -> Unit, onCancel: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(R.string.metered_title)) },
+        text = { Text(stringResource(R.string.metered_body, what, size)) },
+        confirmButton = { TextButton(onClick = { onDownload(false) }) { Text(stringResource(R.string.metered_now)) } },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
+                TextButton(onClick = { onDownload(true) }) { Text(stringResource(R.string.metered_wifi)) }
+            }
+        },
+    )
 }

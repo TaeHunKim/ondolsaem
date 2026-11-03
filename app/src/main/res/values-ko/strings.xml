@@ -125,4 +125,30 @@
     <string name="approvals_allow">허용</string>
     <string name="approvals_deny">거부</string>
     <string name="approvals_revoke">허용 취소</string>
+    <string name="onb_step">%2$d단계 중 %1$d단계</string>
+    <string name="onb_back">이전</string>
+    <string name="onb_next">다음</string>
+    <string name="onb_finish">시작</string>
+    <string name="onb_intro_title">온돌샘에 오신 것을 환영합니다</string>
+    <string name="onb_intro_body">온돌샘은 눈소리 같은 다른 앱을 위해 온디바이스 AI 모델을 맡아 둡니다.</string>
+    <string name="onb_intro_point_shared">모델은 한 번만 받아 한 번만 올리고, 필요한 앱이 함께 씁니다.</string>
+    <string name="onb_intro_point_local">모든 처리는 이 폰 안에서 합니다. 사진, 녹음, 글은 폰 밖으로 나가지 않습니다.</string>
+    <string name="onb_intro_point_apps">내 앱만 쓸 수 있고, 다른 앱은 먼저 허락을 구해야 합니다.</string>
+    <string name="onb_apps_title">이 폰의 앱</string>
+    <string name="onb_apps_body">이 앱들이 이미 온돌샘을 씁니다.</string>
+    <string name="onb_apps_none">아직 연결된 앱이 없습니다. 온돌샘을 쓰는 앱은 여기와 앱 탭에 나타납니다.</string>
+    <string name="onb_models_title">추천 모델</string>
+    <string name="onb_models_body">작업 종류마다 모델 하나씩입니다. 앱에 필요한 것이 체크돼 있습니다. 나중에 모델 탭에서 바꿀 수 있습니다.</string>
+    <string name="onb_models_builtin">내장</string>
+    <string name="onb_models_installed">받음</string>
+    <string name="onb_models_downloading">받는 중</string>
+    <string name="onb_models_download">선택한 모델 받기 (%1$s)</string>
+    <string name="onb_models_later">다운로드는 백그라운드에서 계속되며 Wi-Fi를 권장합니다. 건너뛰고 나중에 받아도 됩니다.</string>
+    <plurals name="onb_models_count">
+        <item quantity="other">모델 %d개</item>
+    </plurals>
+    <string name="onb_notif_title">알림</string>
+    <string name="onb_notif_body">온돌샘은 다운로드 진행 상황과, 모델을 메모리에 유지하는 동안의 알림(Android가 모델을 유지하려면 필요)을 보여 줍니다. 다른 앱이 사용을 요청할 때도 알려 줍니다.</string>
+    <string name="onb_notif_allow">알림 허용</string>
+    <string name="onb_notif_allowed">알림이 허용되어 있습니다.</string>
 </resources>

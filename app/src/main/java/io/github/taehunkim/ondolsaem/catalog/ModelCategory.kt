@@ -34,8 +34,9 @@ data class ModelCategory(
 object ModelCategories {
     val all: List<ModelCategory> = listOf(
         ModelCategory(
+            // 740M also embeds audio (voice recordings, video sound); installs from before 0.4.0 keep 440M (HostUpgrade)
             Categories.EMBEDDING, R.string.cat_embedding, R.string.cat_embedding_desc,
-            ChangeImpact.REINDEX_REQUIRED, Residency.IDLE_2M, "eg2-440m",
+            ChangeImpact.REINDEX_REQUIRED, Residency.IDLE_2M, "eg2-740m",
         ),
         ModelCategory(
             Categories.LLM, R.string.cat_llm, R.string.cat_llm_desc,

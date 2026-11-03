@@ -1,11 +1,8 @@
 package io.github.taehunkim.ondolsaem
 
-import android.Manifest
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
@@ -25,6 +22,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.getValue
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -44,8 +43,6 @@ private val Warm = Color(0xFFC8643B)
 private val Spring = Color(0xFF2F7FB6)
 
 class MainActivity : AppCompatActivity() {
-    private val notifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
-
     /** Tab requested by the launching intent (the approval list for [OndolSaem.ACTION_APPROVE]). */
     private val requestedTab = androidx.compose.runtime.mutableStateOf<Int?>(null)
 
@@ -68,13 +65,20 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT >= 33) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         route(intent)
         setContent {
             val scheme = if (isSystemInDarkTheme()) darkColorScheme(primary = Warm, secondary = Spring)
             else lightColorScheme(primary = Warm, secondary = Spring)
             MaterialTheme(colorScheme = scheme) {
                 val vm: HostViewModel = viewModel()
+                val settings = (application as OndolSaemApp).container.settings
+                val onboarded by settings.onboardingDone.collectAsState(initial = null)
+                if (onboarded == null) return@MaterialTheme
+                if (onboarded == false) {
+                    val scope = androidx.compose.runtime.rememberCoroutineScope()
+                    io.github.taehunkim.ondolsaem.ui.OnboardingScreen(vm) { scope.launch { settings.setOnboardingDone(true) } }
+                    return@MaterialTheme
+                }
                 var tab by rememberSaveable { mutableIntStateOf(0) }
                 val wanted by requestedTab
                 androidx.compose.runtime.LaunchedEffect(wanted) { wanted?.let { tab = it; requestedTab.value = null } }
