@@ -4,7 +4,7 @@ plugins {
 }
 
 // Single place to bump the app version: major.minor.patch, versionCode = major*10000 + minor*100 + patch.
-val appVersionName = "0.2.0"
+val appVersionName = "0.3.0"
 val appVersionCode = appVersionName.split(".").let { (a, b, c) -> a.toInt() * 10000 + b.toInt() * 100 + c.toInt() }
 
 android {
@@ -36,6 +36,9 @@ android {
     buildFeatures { compose = true; buildConfig = true }
     androidResources { generateLocaleConfig = true }
     packaging { jniLibs { useLegacyPackaging = true } }
+    // JNI bridge to sherpa-onnx's ONNX Runtime for models sherpa does not cover (SFace), see src/main/cpp.
+    externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.31.6" } }
+    ndkVersion = "28.2.13676358"
     testOptions { unitTests.isReturnDefaultValues = true }
 }
 
@@ -55,6 +58,7 @@ dependencies {
     implementation(libs.commons.compress)
     implementation(libs.litertlm.android)
     implementation(libs.mlkit.text.recognition.korean)
+    implementation(libs.mlkit.face.detection)
     // Not on Maven Central: scripts/fetch-sherpa-onnx.sh downloads it into app/libs (git-ignored).
     implementation(files("libs/sherpa-onnx-2.0.1.aar"))
     implementation(libs.kotlinx.coroutines.android)

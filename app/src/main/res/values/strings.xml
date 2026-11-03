@@ -81,6 +81,9 @@
     <string name="model_chat_qwen_desc">Smaller text-only chat model; faster on weak phones, weaker at using tools.</string>
     <string name="model_mlkit_desc">Google ML Kit text recognition for Korean and Latin scripts. Runs offline.</string>
     <string name="model_ppocr_desc">PaddleOCR mobile model for Korean text.</string>
+    <string name="cat_face">Faces</string>
+    <string name="cat_face_desc">Finds faces in photos and turns each into a vector so apps can group photos by person. Apps store these vectors: changing the model means they must scan the faces again.</string>
+    <string name="model_sface_desc">Detects faces on the phone (ML Kit, built in) and recognizes them with SFace (OpenCV Zoo, 128 dims).</string>
     <string name="model_sensevoice_desc">Recognises Korean, English, Chinese and Japanese speech offline.</string>
     <string name="model_moonshine_desc">Very small speech recognition model, one language per model.</string>
 

@@ -20,6 +20,8 @@ import io.github.taehunkim.ondolsaem.ICueCallback
 import io.github.taehunkim.ondolsaem.IEmbeddingService
 import io.github.taehunkim.ondolsaem.ILease
 import io.github.taehunkim.ondolsaem.IOcrService
+import io.github.taehunkim.ondolsaem.IFaceService
+import io.github.taehunkim.ondolsaem.FaceResult
 import io.github.taehunkim.ondolsaem.IOndolSaem
 import io.github.taehunkim.ondolsaem.IToolExecutor
 import io.github.taehunkim.ondolsaem.ModelInfo
@@ -113,6 +115,7 @@ class HostService : Service() {
                 Categories.LLM -> chat
                 Categories.OCR -> ocr
                 Categories.ASR -> asr
+                Categories.FACE -> face
                 else -> null
             }
         }
@@ -192,6 +195,24 @@ class HostService : Service() {
             val bytes = Pfds.readAll(image)
             val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: throw BadInputException("unreadable image")
             try { runtime.ocr(pkg).use { it.value.recognize(bmp) } } finally { bmp.recycle() }
+        }
+    }
+
+    private val face = object : IFaceService.Stub() {
+        override fun detectFaces(image: ParcelFileDescriptor, priority: Int): Array<FaceResult> = serve(Categories.FACE, priority) { pkg ->
+            val bytes = Pfds.readAll(image)
+            val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: throw BadInputException("unreadable image")
+            val spec = runtime.activeSpec(Categories.FACE)
+            try {
+                runtime.faces(pkg).use { l ->
+                    l.value.detect(bmp).map { f ->
+                        FaceResult().apply {
+                            left = f.left; top = f.top; right = f.right; bottom = f.bottom; score = f.score
+                            vector = f.vector; modelId = l.value.modelId; modelVersion = spec?.version ?: 1
+                        }
+                    }.toTypedArray()
+                }
+            } finally { bmp.recycle() }
         }
     }
 

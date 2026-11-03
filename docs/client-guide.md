@@ -13,7 +13,12 @@ val v = client.embedQuery("a cat on a sofa")                     // EmbeddingRes
 client.acquire(OndolSaem.Categories.EMBEDDING).use { /* model stays loaded for a batch */ }
 client.chat("conv-1", system, history, "question", tools = listOf(ToolSpec(...))) { name, args -> runTool(name, args) }
     .collect { event -> /* Token / ToolRan */ }
+if (client.supports(OndolSaem.Api.V2)) {
+    val faces = client.detectFaces(jpeg)                          // FaceResult(left, top, right, bottom, score, vector, modelId, modelVersion)
+}
 ```
+
+- Faces (API 2): compare `vector`s with the cosine similarity (0.363 or more: likely the same person). Face vectors are biometric data; keep them on the device and let the user delete them.
 
 - Store `modelId` (and `modelVersion`) next to anything derived from a model. When it differs from `activeModel()` the data is stale.
 - React to model changes: collect `client.modelChanges` while running, and set `ModelChangedReceiver.handler` in `Application.onCreate` for changes while the app is not running (treat it as a hint and re-check `activeModel()`).

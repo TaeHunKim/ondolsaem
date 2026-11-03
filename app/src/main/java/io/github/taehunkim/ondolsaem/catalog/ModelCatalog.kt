@@ -131,6 +131,16 @@ object ModelCatalog {
             ),
         ),
         ModelSpec(
+            id = "face-sface", category = Categories.FACE,
+            displayName = "SFace (face recognition) + ML Kit face detection",
+            descriptionRes = R.string.model_sface_desc,
+            sizeBytes = 38_696_353L, license = "Apache-2.0 (SFace), ML Kit Terms (detection)",
+            source = ModelSource.HuggingFace(
+                "opencv/face_recognition_sface", "face_recognition_sface_2021dec.onnx",
+                "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79",
+            ),
+        ),
+        ModelSpec(
             id = "asr-moonshine", category = Categories.ASR,
             displayName = "Moonshine tiny (Korean / English)",
             descriptionRes = R.string.model_moonshine_desc,

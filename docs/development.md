@@ -4,7 +4,7 @@ Design: [architecture.md](architecture.md).
 
 ## Setup
 
-- Android Studio (its bundled JBR is the JDK), SDK at `~/Library/Android/sdk` with API 37 platform. `source scripts/env.sh` sets `JAVA_HOME`, `ANDROID_HOME` and `PATH`.
+- Android Studio (its bundled JBR is the JDK), SDK at `~/Library/Android/sdk` with API 37 platform, NDK 28.2 and CMake 3.31.6 (the app builds a small JNI bridge, see [architecture.md](architecture.md#faces)). `source scripts/env.sh` sets `JAVA_HOME`, `ANDROID_HOME` and `PATH`.
 - `local.properties` holds `sdk.dir` (git-ignored).
 
 ## Layout
@@ -19,7 +19,7 @@ Design: [architecture.md](architecture.md).
 | Level | Command |
 |---|---|
 | Unit | `./gradlew assembleDebug testDebugUnitTest` |
-| Instrumented | `./gradlew connectedDebugAndroidTest` (needs a device; uninstalls the app at the end, which deletes downloaded models). `HostServiceTest` drives the real bound service through `OndolSaemClient` with fake engines (`ModelRuntime`'s factory and `readyOverride` hooks), so it needs no model. |
+| Instrumented | `./gradlew connectedDebugAndroidTest` (needs a device; uninstalls the app at the end, which deletes downloaded models). `HostServiceTest` drives the real bound service through `OndolSaemClient` with fake engines (`ModelRuntime`'s factory and `readyOverride` hooks), so it needs no model. `FaceEngineTest` runs the real face engine when SFace is downloaded and the photos of Nunsori's `scripts/fetch-face-fixtures.sh` are copied to the app's `files/faces` (`adb push` to `/data/local/tmp`, then `run-as ... cat >`); it logs the cosine of every pair (tag `OndolSaem.FaceTest`). |
 
 Scripts (`scripts/`): `fetch-sherpa-onnx.sh`, `emu-start.sh [--window]`, `emu-stop.sh`, `run.sh` (installDebug + launch), `logcat.sh [N]`, `screenshot.sh`.
 

@@ -9,7 +9,7 @@ In the app's private storage (removed on uninstall or "Clear data"):
 - Downloaded models under `files/models/<model id>/`.
 - Settings (DataStore `host_settings`): the active model and memory policy of each category, the chat context size, the optional Hugging Face token, the list of client apps (package names and the categories each used), and the decisions about other apps (package, signing-certificate SHA-256, allowed/denied/waiting, time of the last request). Request counts and timings are kept in memory only.
 
-Inputs that client apps send (texts, images, audio, chat messages) are processed in memory and never stored; speech input is copied to a temporary file in the cache for the duration of the call and deleted afterwards. Chat conversation state stays in memory while the chat model is loaded.
+Inputs that client apps send (texts, images, audio, chat messages) are processed in memory and never stored (this includes photos sent for face detection: OndolSaem returns the face boxes and vectors to the app and keeps nothing); speech input is copied to a temporary file in the cache for the duration of the call and deleted afterwards. Chat conversation state stays in memory while the chat model is loaded.
 
 ## Network
 
@@ -17,6 +17,7 @@ Only to download models the user asks for:
 
 - `https://huggingface.co/litert-community/...` (EmbeddingGemma 2 and the chat models; the Hugging Face token, if set, is sent only here)
 - `https://github.com/k2-fsa/sherpa-onnx/releases/...` (SenseVoice)
+- `https://huggingface.co/opencv/face_recognition_sface/...` (SFace)
 
 Before a download on a metered network (mobile data or metered Wi-Fi) the app asks first. Every downloaded file is checked against a SHA-256 recorded in the app, so a damaged or replaced file is not used.
 

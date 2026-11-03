@@ -2,7 +2,7 @@
 
 **English** | [한국어](README.ko.md)
 
-OndolSaem is an Android app that hosts on-device AI models for other apps. It downloads curated models per category (text/image/audio embedding, chat LLM, OCR, speech recognition), keeps them in memory according to a per-category policy, and serves them to client apps over a bound AIDL service. A model is loaded once for all apps instead of once per app.
+OndolSaem is an Android app that hosts on-device AI models for other apps. It downloads curated models per category (text/image/audio embedding, chat LLM, OCR, speech recognition, faces), keeps them in memory according to a per-category policy, and serves them to client apps over a bound AIDL service. A model is loaded once for all apps instead of once per app.
 
 The name joins *ondol* (온돌, the floor heating that warms a whole house from underneath) and *saem* (샘, a spring everyone draws water from). As acronyms:
 - **ONDOL**: On-device Neural Deployment & Orchestration Layer

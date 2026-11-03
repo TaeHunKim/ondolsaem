@@ -81,6 +81,9 @@
     <string name="model_chat_qwen_desc">더 작은 텍스트 전용 채팅 모델. 약한 폰에서 빠르지만 도구 사용 능력은 낮습니다.</string>
     <string name="model_mlkit_desc">한국어와 라틴 문자를 인식하는 Google ML Kit 텍스트 인식. 오프라인으로 동작합니다.</string>
     <string name="model_ppocr_desc">한국어용 PaddleOCR 모바일 모델입니다.</string>
+    <string name="cat_face">얼굴</string>
+    <string name="cat_face_desc">사진 속 얼굴을 찾아 벡터로 바꿔, 앱이 사진을 인물별로 묶을 수 있게 합니다. 앱이 이 벡터를 저장하므로 모델을 바꾸면 얼굴을 다시 스캔해야 합니다.</string>
+    <string name="model_sface_desc">얼굴을 폰에서 찾고(ML Kit, 내장) SFace(OpenCV Zoo, 128차원)로 알아봅니다.</string>
     <string name="model_sensevoice_desc">한국어, 영어, 중국어, 일본어 음성을 오프라인으로 인식합니다.</string>
     <string name="model_moonshine_desc">아주 작은 음성 인식 모델입니다. 모델마다 한 가지 언어만 지원합니다.</string>
 

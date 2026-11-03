@@ -12,6 +12,8 @@ import io.github.taehunkim.ondolsaem.ChatRequest
 import io.github.taehunkim.ondolsaem.ClientInfo
 import io.github.taehunkim.ondolsaem.HostInfo
 import io.github.taehunkim.ondolsaem.EmbeddingResult
+import io.github.taehunkim.ondolsaem.FaceResult
+import io.github.taehunkim.ondolsaem.IFaceService
 import io.github.taehunkim.ondolsaem.IAsrService
 import io.github.taehunkim.ondolsaem.IChatCallback
 import io.github.taehunkim.ondolsaem.IChatService
@@ -176,6 +178,18 @@ class OndolSaemClient(
         call { h ->
             IOcrService.Stub.asInterface(h.getCapability(OndolSaem.Categories.OCR) ?: throw missing(OndolSaem.Categories.OCR))
                 .recognize(Pfds.ofBytes(image), priority)
+        }
+
+    // ---- faces (API 2) -----------------------------------------------------------------------------------------
+
+    /**
+     * Faces in [image] (JPEG or PNG): boxes in 0..1 coordinates, quality and identity vectors (cosine similarity:
+     * same person scores high). Fails with [HostUnavailableException.Reason.HOST_TOO_OLD] on an API 1 host.
+     */
+    suspend fun detectFaces(image: ByteArray, priority: Int = OndolSaem.PRIORITY_BACKGROUND): List<FaceResult> =
+        call(minApi = OndolSaem.Api.V2) { h ->
+            IFaceService.Stub.asInterface(h.getCapability(OndolSaem.Categories.FACE) ?: throw missing(OndolSaem.Categories.FACE))
+                .detectFaces(Pfds.ofBytes(image), priority).toList()
         }
 
     // ---- speech ------------------------------------------------------------------------------------------------

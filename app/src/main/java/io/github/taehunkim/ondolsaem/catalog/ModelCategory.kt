@@ -49,6 +49,10 @@ object ModelCategories {
             Categories.ASR, R.string.cat_asr, R.string.cat_asr_desc,
             ChangeImpact.DERIVED_DATA, Residency.IDLE_2M, "asr-sensevoice",
         ),
+        ModelCategory(
+            Categories.FACE, R.string.cat_face, R.string.cat_face_desc,
+            ChangeImpact.REINDEX_REQUIRED, Residency.IDLE_2M, "face-sface",
+        ),
     )
 
     fun byId(id: String): ModelCategory? = all.firstOrNull { it.id == id }

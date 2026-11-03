@@ -10,6 +10,8 @@ import io.github.taehunkim.ondolsaem.catalog.ModelSpec
 import io.github.taehunkim.ondolsaem.download.ModelManager
 import io.github.taehunkim.ondolsaem.engine.ChatModel
 import io.github.taehunkim.ondolsaem.engine.Embedder
+import io.github.taehunkim.ondolsaem.engine.FaceEngine
+import io.github.taehunkim.ondolsaem.engine.SFaceEngine
 import io.github.taehunkim.ondolsaem.engine.EmbeddingGemma2Embedder
 import io.github.taehunkim.ondolsaem.engine.LiteRtChatModel
 import io.github.taehunkim.ondolsaem.engine.MlKitOcrEngine
@@ -46,9 +48,11 @@ class ModelRuntime(
     val llm = LeasedResource<ChatModel>("llm", scope, { it.backend.ifEmpty { null } }, measure, policy = policy(Categories.LLM))
     val ocrRes = LeasedResource<OcrEngine>("ocr", scope, measure = measure, policy = policy(Categories.OCR))
     val asr = LeasedResource<SpeechTools>("asr", scope, measure = measure, policy = policy(Categories.ASR))
+    val face = LeasedResource<FaceEngine>("face", scope, measure = measure, policy = policy(Categories.FACE))
 
     val resources: Map<String, LeasedResource<*>> = mapOf(
         Categories.EMBEDDING to embedding, Categories.LLM to llm, Categories.OCR to ocrRes, Categories.ASR to asr,
+        Categories.FACE to face,
     )
 
     /** One request at a time per category, interactive first, background requests round-robin by app. */
@@ -67,6 +71,12 @@ class ModelRuntime(
         LiteRtChatModel.load(file, litertCache, spec.vision, ctx)
     }
     var ocrFactory: suspend (spec: ModelSpec) -> OcrEngine = { MlKitOcrEngine(it.id) }
+    var faceFactory: suspend (spec: ModelSpec, file: File) -> FaceEngine? = { spec, file ->
+        when (spec.id) {
+            "face-sface" -> SFaceEngine(spec.id, file)
+            else -> null
+        }
+    }
     var speechFactory: suspend (asrDir: File?) -> SpeechTools = { SherpaSpeech(context, it, 2) }
 
     suspend fun activeSpec(category: String): ModelSpec? = ModelCatalog.byId(settings.activeModelId(category).first())
@@ -124,12 +134,20 @@ class ModelRuntime(
         return asr.acquire(spec?.id ?: "vad-only", owner) { speechFactory(spec?.let(manager::dir)) }!!
     }
 
+    suspend fun faces(owner: String): Lease<FaceEngine> {
+        val spec = requireSpec(Categories.FACE)
+        val file = manager.file(spec) ?: File("")
+        return face.acquire(spec.id, owner) { faceFactory(spec, file) }
+            ?: throw ModelNotReadyException(Categories.FACE, "unsupported face model ${spec.id}")
+    }
+
     /** A lease on [category]'s model (loads it now). */
     suspend fun lease(category: String, owner: String): Lease<*> = when (category) {
         Categories.EMBEDDING -> embedder(owner)
         Categories.LLM -> chat(owner)
         Categories.OCR -> ocr(owner)
         Categories.ASR -> speech(owner)
+        Categories.FACE -> faces(owner)
         else -> throw ModelNotReadyException(category, "unknown category $category")
     }
 

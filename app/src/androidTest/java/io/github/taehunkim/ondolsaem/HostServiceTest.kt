@@ -8,7 +8,9 @@ import io.github.taehunkim.ondolsaem.engine.ChatModel
 import io.github.taehunkim.ondolsaem.engine.ChatTool
 import io.github.taehunkim.ondolsaem.engine.ChatTurn
 import io.github.taehunkim.ondolsaem.engine.Cue
+import io.github.taehunkim.ondolsaem.engine.DetectedFace
 import io.github.taehunkim.ondolsaem.engine.Embedder
+import io.github.taehunkim.ondolsaem.engine.FaceEngine
 import io.github.taehunkim.ondolsaem.engine.OcrEngine
 import io.github.taehunkim.ondolsaem.engine.Span
 import io.github.taehunkim.ondolsaem.engine.SpeechTools
@@ -115,7 +117,14 @@ class HostServiceTest {
             override suspend fun recognize(bitmap: Bitmap) = "${bitmap.width}x${bitmap.height}"
         } }
         runtime.speechFactory = { dir -> FakeSpeech(dir != null) }
-        for (c in listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR)) {
+        runtime.faceFactory = { spec, _ -> object : FaceEngine {
+            override val modelId = spec.id
+            // one face per 20 px of width, vector = its index
+            override suspend fun detect(bitmap: Bitmap) = (0 until bitmap.width / 20).map { i ->
+                DetectedFace(i * 0.1f, 0.1f, i * 0.1f + 0.1f, 0.5f, 0.9f, floatArrayOf(i.toFloat(), 1f))
+            }
+        } }
+        for (c in listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR, Categories.FACE)) {
             container.settings.setResidency(c, Residency.IDLE_2M)
             runtime.unload(c)
         }
@@ -128,13 +137,13 @@ class HostServiceTest {
         container.minClientApi = HostContainer.MIN_CLIENT_API
         runtime.readyOverride = null
         client.disconnect()
-        for (c in listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR)) runtime.unload(c)
+        for (c in listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR, Categories.FACE)) runtime.unload(c)
     }
 
     @Test fun reportsApiAndCategories() = runBlocking {
         assertEquals(OndolSaem.API_VERSION, client.apiVersion())
         val cats = client.categories().map { it.category }
-        assertEquals(listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR), cats)
+        assertEquals(listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR, Categories.FACE), cats)
         val emb = client.activeModel(Categories.EMBEDDING)!!
         assertEquals("eg2-440m", emb.id)
         assertTrue(emb.ready)
@@ -176,7 +185,9 @@ class HostServiceTest {
         val lease = client.acquire(Categories.EMBEDDING)
         client.embedQuery("b"); client.embedQuery("c")
         assertTrue("held by the lease", runtime.embedding.isLoaded)
-        assertEquals(mapOf(ctx.packageName to 1), runtime.embedding.state.value!!.holders.filterValues { it > 0 })
+        // the requests' own leases are returned asynchronously; only the client's lease stays
+        fun held() = runtime.embedding.state.value!!.holders.filterValues { it > 0 }
+        withTimeout(2_000) { while (held() != mapOf(ctx.packageName to 1)) delay(20) }
         lease.close()
         withTimeout(2_000) { while (runtime.embedding.isLoaded) delay(20) }
     }
@@ -204,6 +215,28 @@ class HostServiceTest {
         val first = client.chat("c", "", emptyList(), "forever").take(1).first()
         assertEquals(ChatStreamEvent.Token("…"), first)
         withTimeout(5_000) { chat.cancelled.await() }
+    }
+
+    @Test fun facesComeBackWithBoxesAndVectors() = runBlocking {
+        val png = ByteArrayOutputStream().also { Bitmap.createBitmap(40, 30, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+        val faces = client.detectFaces(png)
+        assertEquals(2, faces.size)
+        assertEquals(0.1f, faces[1].left, 1e-6f)
+        assertArrayEquals(floatArrayOf(1f, 1f), faces[1].vector, 1e-6f)
+        assertEquals("face-sface", faces[0].modelId)
+        try { client.detectFaces(byteArrayOf(1, 2, 3)); fail() } catch (e: HostCallException) {
+            assertEquals(OndolSaem.Errors.BAD_INPUT, e.code)
+        }
+    }
+
+    @Test fun facesNeedAnApi2Host() = runBlocking {
+        container.apiVersion = OndolSaem.Api.V1 // an older host
+        client.disconnect(); delay(200)
+        try {
+            client.detectFaces(byteArrayOf(1)); fail("expected HOST_TOO_OLD")
+        } catch (e: HostUnavailableException) {
+            assertEquals(HostUnavailableException.Reason.HOST_TOO_OLD, e.reason)
+        }
     }
 
     @Test fun ocrDecodesTheImage() = runBlocking {
@@ -292,7 +325,7 @@ class HostServiceTest {
         container.apiVersion = newer
         client.disconnect(); delay(200)
         assertTrue(client.supports(newer))
-        assertEquals(4, client.call(minApi = newer) { it.categories() }.size)
+        assertEquals(5, client.call(minApi = newer) { it.categories() }.size)
     }
 
     @Test fun anOlderClientLevelIsStillServedWhileAboveTheMinimum() = runBlocking {

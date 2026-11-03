@@ -13,6 +13,8 @@ It uses the components below. Versions come from [`gradle/libs.versions.toml`](g
 | LiteRT-LM (`litertlm-android`) | 0.19.0 | Apache-2.0 |
 | sherpa-onnx (AAR, downloaded by `scripts/fetch-sherpa-onnx.sh`, not committed) | 2.0.1 | Apache-2.0 |
 | Apache Commons Compress | 1.28.0 | Apache-2.0 |
+| ML Kit Face Detection (bundled model) | 16.1.7 | [ML Kit Terms of Service](https://developers.google.com/ml-kit/terms) (proprietary; fetched through Gradle, not redistributed in this repository) |
+| ONNX Runtime C API headers (`app/src/main/cpp/include/onnxruntime`, v1.28.0; the runtime itself comes with sherpa-onnx) | 1.28.0 | MIT |
 | ML Kit Text Recognition (Korean) | 16.0.1 | [ML Kit Terms of Service](https://developers.google.com/ml-kit/terms) (proprietary; fetched through Gradle, not redistributed in this repository) |
 
 The client SDK (`:sdk`) uses only kotlinx.coroutines and the Android framework.
@@ -32,6 +34,8 @@ redistributing.
 | SenseVoice small, int8 (via sherpa-onnx) | 163 MB archive | GitHub `k2-fsa/sherpa-onnx` release `asr-models` | FunASR Model License |
 | Silero VAD | 0.6 MB | GitHub `k2-fsa/sherpa-onnx` release `asr-models` | MIT |
 | ML Kit Korean text recognition | n/a | Google (Gradle dependency) | ML Kit Terms |
+| SFace (face recognition, `face_recognition_sface_2021dec.onnx`) | 39 MB | Hugging Face `opencv/face_recognition_sface` (OpenCV Zoo) | Apache-2.0 (LICENSE in the repository) |
+| ML Kit face detection | n/a | Google (Gradle dependency) | ML Kit Terms |
 
 The EmbeddingGemma model cards say Apache-2.0 but also link to the Gemma terms of use; the catalog in
 [`ModelCatalog.kt`](app/src/main/java/io/github/taehunkim/ondolsaem/catalog/ModelCatalog.kt) follows the card.
