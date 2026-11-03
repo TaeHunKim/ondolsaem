@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar icon: a memory chip (models kept in memory) with the OndolSaem drop inside. A drop alone looked like
+     Android's moisture-in-port warning. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FFFFFF" android:pathData="M12,2 C12,2 5,10.5 5,15 A7,7 0 0 0 19,15 C19,10.5 12,2 12,2 Z" />
+    <!-- chip body: outline ring -->
+    <path android:fillColor="#FFFFFF" android:fillType="evenOdd"
+        android:pathData="M7,5h10a2,2 0 0 1 2,2v10a2,2 0 0 1 -2,2h-10a2,2 0 0 1 -2,-2v-10a2,2 0 0 1 2,-2z M7.75,6.75h8.5a1,1 0 0 1 1,1v8.5a1,1 0 0 1 -1,1h-8.5a1,1 0 0 1 -1,-1v-8.5a1,1 0 0 1 1,-1z" />
+    <!-- pins: three per side -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M8.25,2h1.5v3h-1.5z M11.25,2h1.5v3h-1.5z M14.25,2h1.5v3h-1.5z M8.25,19h1.5v3h-1.5z M11.25,19h1.5v3h-1.5z M14.25,19h1.5v3h-1.5z M2,8.25h3v1.5h-3z M2,11.25h3v1.5h-3z M2,14.25h3v1.5h-3z M19,8.25h3v1.5h-3z M19,11.25h3v1.5h-3z M19,14.25h3v1.5h-3z" />
+    <!-- drop -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M12,8.6 C12,8.6 9.5,11.6 9.5,13.4 A2.5,2.5 0 0 0 14.5,13.4 C14.5,11.6 12,8.6 12,8.6 Z" />
 </vector>
