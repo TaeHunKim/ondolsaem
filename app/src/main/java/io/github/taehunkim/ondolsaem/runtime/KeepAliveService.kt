@@ -26,6 +26,7 @@ class KeepAliveService : Service() {
             else startForeground(Notifications.ID_RESIDENT, n)
         } catch (e: Exception) {
             Log.w(TAG, "cannot run in the foreground", e)
+            (application as? io.github.taehunkim.ondolsaem.OndolSaemApp)?.container?.setKeepAliveBlocked(true)
             stopSelf()
         }
         return START_NOT_STICKY

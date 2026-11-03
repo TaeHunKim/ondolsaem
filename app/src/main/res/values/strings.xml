@@ -15,6 +15,12 @@
     <string name="channel_download">Model downloads</string>
     <string name="channel_resident">Models kept in memory</string>
     <string name="notif_download_title">Downloading %1$s</string>
+    <string name="channel_alerts">Alerts</string>
+    <string name="notif_keep_blocked_title">Could not keep models loaded</string>
+    <string name="notif_keep_blocked_text">Android did not let OndolSaem stay running in the background, so models set to “keep loaded” may be unloaded. Tap to open OndolSaem and try again.</string>
+    <string name="dash_keep_blocked">Android refused to keep OndolSaem running in the background, so models set to “keep loaded” may be unloaded when no app is using them. Opening OndolSaem fixes it until the next time. Turning off battery optimization for OndolSaem lets it start in the background too.</string>
+    <string name="dash_keep_battery">Turn off battery optimization</string>
+    <string name="dash_keep_retry">Try again</string>
     <string name="notif_resident_title">Keeping AI models loaded</string>
     <string name="notif_resident_text">%1$d model(s) in memory · about %2$d MB</string>
 

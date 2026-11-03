@@ -32,3 +32,4 @@ Only apps signed with the same key as OndolSaem, or with a key listed in `app/sr
 | `POST_NOTIFICATIONS` | Download progress and the "models kept in memory" notification |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC` | Downloads in the background |
 | `FOREGROUND_SERVICE_SPECIAL_USE` | Keeping models the user set to "keep loaded" in memory |
+| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Asking the user to turn off battery optimization, offered only after Android refused to keep models loaded from the background; it lets the keep-alive service start in the background |

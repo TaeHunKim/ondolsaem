@@ -17,7 +17,7 @@ Status: early development (0.1.0). The first client is [Nunsori / 눈소리](htt
 | Model categories | Each category has a short description and curated models; one downloaded model is the category default |
 | Downloads | Warning before downloading on a metered network (mobile data or metered Wi-Fi), with a "wait for Wi-Fi" option |
 | Model changes | Changing an embedding model warns which apps must re-embed their data; client apps are notified right away or on their next connection |
-| Residency | Per category: keep loaded, unload right after use, or unload after N minutes. Unloaded models are loaded again on the next request |
+| Residency | Per category: keep loaded, unload right after use, or unload after N minutes. Unloaded models are loaded again on the next request. If Android refuses to keep the host running in the background, a notification and a dashboard card offer to turn off battery optimization |
 | Dashboard | Device memory, the host's memory use, loaded models and which apps hold them |
 | Apps | Apps that use the host, their categories and request statistics; only own apps (same signing key or an allowed key) can connect |
 | Client SDK | `com.github.taehunkim.ondolsaem:sdk`, see [docs/architecture.md](docs/architecture.md) |

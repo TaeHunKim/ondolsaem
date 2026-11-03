@@ -15,13 +15,16 @@ import java.util.UUID
 object Notifications {
     const val CH_DOWNLOAD = "download"
     const val CH_RESIDENT = "resident"
+    const val CH_ALERTS = "alerts"
     const val ID_DOWNLOAD = 1001
     const val ID_RESIDENT = 1002
+    const val ID_KEEP_BLOCKED = 1003
 
     fun ensureChannels(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(CH_DOWNLOAD, ctx.getString(R.string.channel_download), NotificationManager.IMPORTANCE_LOW))
         nm.createNotificationChannel(NotificationChannel(CH_RESIDENT, ctx.getString(R.string.channel_resident), NotificationManager.IMPORTANCE_MIN))
+        nm.createNotificationChannel(NotificationChannel(CH_ALERTS, ctx.getString(R.string.channel_alerts), NotificationManager.IMPORTANCE_DEFAULT))
     }
 
     fun openApp(ctx: Context): PendingIntent = PendingIntent.getActivity(
@@ -58,6 +61,24 @@ object Notifications {
             .setOnlyAlertOnce(true)
             .setContentIntent(openApp(ctx))
             .build()
+    }
+
+    /** Android refused the keep-alive service; tapping opens the app, which starts it again. */
+    fun keepAliveBlocked(ctx: Context): Notification {
+        ensureChannels(ctx)
+        return NotificationCompat.Builder(ctx, CH_ALERTS)
+            .setSmallIcon(R.drawable.ic_stat_ondolsaem)
+            .setContentTitle(ctx.getString(R.string.notif_keep_blocked_title))
+            .setContentText(ctx.getString(R.string.notif_keep_blocked_text))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(ctx.getString(R.string.notif_keep_blocked_text)))
+            .setOnlyAlertOnce(true)
+            .setAutoCancel(true)
+            .setContentIntent(openApp(ctx))
+            .build()
+    }
+
+    fun cancel(ctx: Context, id: Int) {
+        runCatching { ctx.getSystemService(NotificationManager::class.java).cancel(id) }
     }
 
     fun notify(ctx: Context, id: Int, n: Notification) {

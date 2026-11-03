@@ -43,6 +43,11 @@ class HostViewModel(app: Application) : AndroidViewModel(app) {
 
     val modelStates = c.modelManager.states
 
+    val keepAliveBlocked = c.keepAliveBlocked
+    fun retryKeepAlive() = c.retryKeepAlive(force = true)
+    fun batteryOptimized(): Boolean =
+        !getApplication<Application>().getSystemService(android.os.PowerManager::class.java).isIgnoringBatteryOptimizations(getApplication<Application>().packageName)
+
     val memory: StateFlow<MemorySnapshot> = flow {
         val am = app.getSystemService(ActivityManager::class.java)
         while (true) {

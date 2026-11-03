@@ -90,7 +90,23 @@ fun DashboardScreen(vm: HostViewModel) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) { while (true) { delay(1_000); now = System.currentTimeMillis() } }
 
+    val keepBlocked by vm.keepAliveBlocked.collectAsState()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+
     LazyColumn(Modifier.testTag("dashboard")) {
+        if (keepBlocked) item {
+            SectionCard(stringResource(R.string.notif_keep_blocked_title)) {
+                Text(stringResource(R.string.dash_keep_blocked), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (vm.batteryOptimized()) OutlinedButton(onClick = {
+                        @android.annotation.SuppressLint("BatteryLife")
+                        val i = android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:" + ctx.packageName))
+                        runCatching { ctx.startActivity(i) }
+                    }) { Text(stringResource(R.string.dash_keep_battery)) }
+                    OutlinedButton(onClick = vm::retryKeepAlive) { Text(stringResource(R.string.dash_keep_retry)) }
+                }
+            }
+        }
         item {
             SectionCard(stringResource(R.string.dash_device)) {
                 val used = (mem.deviceTotal - mem.deviceAvail).coerceAtLeast(0)

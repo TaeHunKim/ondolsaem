@@ -46,6 +46,12 @@ private val Spring = Color(0xFF2F7FB6)
 class MainActivity : AppCompatActivity() {
     private val notifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
+    /** Visible now, so Android allows the keep-alive service if it was refused in the background. */
+    override fun onStart() {
+        super.onStart()
+        (application as OndolSaemApp).container.retryKeepAlive(force = true)
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()

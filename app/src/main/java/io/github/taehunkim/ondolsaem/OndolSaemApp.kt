@@ -13,6 +13,9 @@ import io.github.taehunkim.ondolsaem.settings.HostSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -66,6 +69,40 @@ class HostContainer(val app: Application) {
         if (active) notifier.notify(runtime.modelInfo(spec.category))
     }
 
+    /** Notification text of the keep-alive service while a "keep loaded" model is in memory, else null. */
+    @Volatile private var keepAliveText: String? = null
+    private val _keepAliveBlocked = MutableStateFlow(false)
+
+    /**
+     * True while a "keep loaded" model is in memory but Android refused to start the keep-alive foreground service
+     * (the host was in the background). The model stays loaded, but the process may be killed when no client is
+     * bound. Retried by [retryKeepAlive].
+     */
+    val keepAliveBlocked: StateFlow<Boolean> = _keepAliveBlocked.asStateFlow()
+
+    @Volatile private var lastKeepAliveTry = 0L
+
+    /**
+     * Starts the keep-alive service again if it was refused; cheap no-op otherwise. Requests from clients call it
+     * with [force] false (at most one try per 30 s); the app's own screens force it.
+     */
+    fun retryKeepAlive(force: Boolean = false) {
+        if (!_keepAliveBlocked.value) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (!force && now - lastKeepAliveTry < 30_000) return
+        lastKeepAliveTry = now
+        val text = keepAliveText ?: run { setKeepAliveBlocked(false); return }
+        if (KeepAliveService.start(app, text)) setKeepAliveBlocked(false)
+    }
+
+    /** Also called by the service when `startForeground` itself is refused. */
+    fun setKeepAliveBlocked(blocked: Boolean) {
+        if (_keepAliveBlocked.value == blocked) return
+        _keepAliveBlocked.value = blocked
+        if (blocked) Notifications.notify(app, Notifications.ID_KEEP_BLOCKED, Notifications.keepAliveBlocked(app))
+        else Notifications.cancel(app, Notifications.ID_KEEP_BLOCKED)
+    }
+
     /** Runs the keep-alive foreground service while a "keep loaded" model is in memory. */
     fun watchKeepAlive() {
         scope.launch {
@@ -76,7 +113,9 @@ class HostContainer(val app: Application) {
                     app.getString(R.string.notif_resident_text, present.size, present.sumOf { it.loadedKb ?: 0 } / 1024)
                 }
             }.distinctUntilChanged().collect { text ->
-                if (text != null) KeepAliveService.start(app, text) else KeepAliveService.stop(app)
+                keepAliveText = text
+                if (text != null) setKeepAliveBlocked(!KeepAliveService.start(app, text))
+                else { KeepAliveService.stop(app); setKeepAliveBlocked(false) }
             }
         }
     }

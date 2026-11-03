@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Lets the user exempt the host from battery optimization, which allows starting the keep-alive service from
+         the background (see KeepAliveService). Asked only from the dashboard, after Android refused it. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!-- Client apps carry the SDK's model-change receiver; this makes them visible so the host can notify them. -->
     <queries>

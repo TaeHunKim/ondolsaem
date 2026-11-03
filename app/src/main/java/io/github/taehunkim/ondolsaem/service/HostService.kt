@@ -64,6 +64,7 @@ class HostService : Service() {
     /** Runs a request for [category]: caller check, priority queue, error mapping and usage statistics. */
     private fun <T> serve(category: String, priority: Int, block: suspend (pkg: String) -> T): T {
         val pkg = caller.require()
+        container.retryKeepAlive() // succeeds once Android allows it (e.g. battery optimization turned off)
         val start = SystemClock.elapsedRealtime()
         var ok = false
         try {
@@ -236,6 +237,7 @@ class HostService : Service() {
     private val chat = object : IChatService.Stub() {
         override fun reply(request: ChatRequest, callback: IChatCallback, tools: IToolExecutor?, priority: Int) {
             val pkg = caller.require()
+            container.retryKeepAlive()
             registry.touch(pkg, Categories.LLM)
             val key = "$pkg|${request.requestId}"
             val job = container.scope.launch(Dispatchers.IO) {
