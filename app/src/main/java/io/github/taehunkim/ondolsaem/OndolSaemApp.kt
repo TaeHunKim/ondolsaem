@@ -1,0 +1,88 @@
+package io.github.taehunkim.ondolsaem
+
+import android.app.Application
+import android.content.ComponentCallbacks2
+import io.github.taehunkim.ondolsaem.catalog.ModelCatalog
+import io.github.taehunkim.ondolsaem.download.ModelManager
+import io.github.taehunkim.ondolsaem.runtime.KeepAliveService
+import io.github.taehunkim.ondolsaem.runtime.ModelRuntime
+import io.github.taehunkim.ondolsaem.service.CallerCheck
+import io.github.taehunkim.ondolsaem.service.ClientRegistry
+import io.github.taehunkim.ondolsaem.service.ModelChangeNotifier
+import io.github.taehunkim.ondolsaem.settings.HostSettings
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+
+class HostContainer(val app: Application) {
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val settings = HostSettings(app)
+    val modelManager = ModelManager(app, settings)
+    val runtime = ModelRuntime(app, modelManager, settings, scope)
+    val caller = CallerCheck(app)
+    val registry = ClientRegistry(app, settings, scope)
+    val notifier = ModelChangeNotifier(app, settings)
+
+    /** The user picked another model for [category]. */
+    suspend fun selectModel(category: String, id: String) {
+        if (settings.activeModelId(category).first() == id) return
+        settings.setActiveModel(category, id)
+        runtime.unload(category)
+        notifier.notify(runtime.modelInfo(category))
+    }
+
+    /** A download finished: if it is the active model of its category, clients can use it now. */
+    suspend fun onModelInstalled(id: String) {
+        modelManager.refresh()
+        val spec = ModelCatalog.byId(id) ?: return
+        if (settings.activeModelId(spec.category).first() == id) notifier.notify(runtime.modelInfo(spec.category))
+    }
+
+    suspend fun deleteModel(id: String) {
+        val spec = ModelCatalog.byId(id) ?: return
+        val active = settings.activeModelId(spec.category).first() == id
+        if (active) runtime.unload(spec.category)
+        modelManager.delete(id)
+        if (active) notifier.notify(runtime.modelInfo(spec.category))
+    }
+
+    /** Runs the keep-alive foreground service while a "keep loaded" model is in memory. */
+    fun watchKeepAlive() {
+        scope.launch {
+            val states = combine(runtime.resources.values.map { it.state }) { it.toList() }
+            combine(runtime.keptModelLoaded, states) { kept, loaded ->
+                if (!kept) null else {
+                    val present = loaded.filterNotNull()
+                    app.getString(R.string.notif_resident_text, present.size, present.sumOf { it.loadedKb ?: 0 } / 1024)
+                }
+            }.distinctUntilChanged().collect { text ->
+                if (text != null) KeepAliveService.start(app, text) else KeepAliveService.stop(app)
+            }
+        }
+    }
+}
+
+class OndolSaemApp : Application() {
+    lateinit var container: HostContainer
+        private set
+
+    override fun onCreate() {
+        super.onCreate()
+        container = HostContainer(this)
+        Notifications.ensureChannels(this)
+        container.watchKeepAlive()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        // models of categories set to "keep loaded" stay; the others go when the system needs memory
+        @Suppress("DEPRECATION")
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+            container.scope.launch { container.runtime.trim(includeKept = false) }
+        }
+    }
+}

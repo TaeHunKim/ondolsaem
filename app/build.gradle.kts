@@ -47,9 +47,23 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.compose.material.icons)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.okhttp)
+    implementation(libs.commons.compress)
+    implementation(libs.litertlm.android)
+    implementation(libs.mlkit.text.recognition.korean)
+    // Not on Maven Central: scripts/fetch-sherpa-onnx.sh downloads it into app/libs (git-ignored).
+    implementation(files("libs/sherpa-onnx-2.0.1.aar"))
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 }

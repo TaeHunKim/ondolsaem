@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- a drop rising from the warm floor (saem, a spring) -->
+    <path android:fillColor="#2F7FB6" android:pathData="M54,28 C54,28 38,48 38,60 A16,16 0 0 0 70,60 C70,48 54,28 54,28 Z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.6" android:pathData="M47,58 A7,7 0 0 0 54,67 L54,64 A4,4 0 0 1 50,58 Z" />
+</vector>

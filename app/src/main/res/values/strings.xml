@@ -1,4 +1,104 @@
 <resources>
     <string name="app_name">OndolSaem</string>
     <string name="tagline">Shared on-device AI models for your apps</string>
+
+    <string name="tab_dashboard">Memory</string>
+    <string name="tab_models">Models</string>
+    <string name="tab_apps">Apps</string>
+    <string name="tab_settings">Settings</string>
+
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_load">Load now</string>
+    <string name="action_unload">Unload now</string>
+
+    <string name="channel_download">Model downloads</string>
+    <string name="channel_resident">Models kept in memory</string>
+    <string name="notif_download_title">Downloading %1$s</string>
+    <string name="notif_resident_title">Keeping AI models loaded</string>
+    <string name="notif_resident_text">%1$d model(s) in memory · about %2$d MB</string>
+
+    <string name="cat_embedding">Embedding (search)</string>
+    <string name="cat_embedding_desc">Turns text, images and audio into vectors so apps can search by meaning. Apps store these vectors: changing the model means they must re-create their data.</string>
+    <string name="cat_llm">Chat (language model)</string>
+    <string name="cat_llm_desc">Answers questions, summarises and calls app tools. The largest models: 1.5–4 GB on disk and in memory.</string>
+    <string name="cat_ocr">Text recognition (OCR)</string>
+    <string name="cat_ocr_desc">Reads text in photos and scanned pages.</string>
+    <string name="cat_asr">Speech recognition</string>
+    <string name="cat_asr_desc">Turns speech in voice recordings and videos into text. Finding the parts that contain speech works without a download.</string>
+
+    <string name="residency_keep">Keep loaded</string>
+    <string name="residency_immediate">Unload right after use</string>
+    <string name="residency_idle_1m">Unload after 1 min</string>
+    <string name="residency_idle_2m">Unload after 2 min</string>
+    <string name="residency_idle_5m">Unload after 5 min</string>
+    <string name="residency_idle_15m">Unload after 15 min</string>
+
+    <string name="dash_device">Device memory</string>
+    <string name="dash_available">Available</string>
+    <string name="dash_low_threshold">Low-memory threshold</string>
+    <string name="dash_low_memory">The device is low on memory: models that are not set to stay loaded are unloaded first.</string>
+    <string name="dash_process">OndolSaem process</string>
+    <string name="dash_total">Total (PSS)</string>
+    <string name="dash_native">Native (models)</string>
+    <string name="dash_graphics">Graphics (GPU)</string>
+    <string name="dash_java">Java</string>
+    <string name="dash_no_model">No model selected</string>
+    <string name="dash_not_loaded">Not loaded</string>
+    <string name="dash_backend">Runs on</string>
+    <string name="dash_model_memory">Memory when loaded</string>
+    <string name="dash_in_use_by">In use by</string>
+    <string name="dash_idle">Nobody (idle)</string>
+    <string name="dash_unloads_in">Unloads in</string>
+    <string name="dash_policy">Policy</string>
+
+    <string name="models_residency">Memory</string>
+    <string name="models_chat_context">Context length (tokens; longer chats need more memory)</string>
+    <string name="model_download">Download</string>
+    <string name="model_retry">Retry</string>
+    <string name="model_delete">Delete</string>
+    <string name="model_installed">Installed</string>
+    <string name="model_bundled">Built in</string>
+    <string name="model_coming_soon">Coming soon</string>
+    <string name="model_waiting_wifi">Waiting for Wi-Fi</string>
+    <string name="model_downloading">Downloading… %1$d%%</string>
+    <string name="model_selected_missing">Selected, but not downloaded yet: apps cannot use this category until it is.</string>
+    <string name="model_err_auth">Access denied. Add a Hugging Face token in Settings and accept the model license on huggingface.co.</string>
+    <string name="model_err_not_found">Model file not found on Hugging Face.</string>
+    <string name="model_err_network">Network error. Retry to resume the download.</string>
+    <string name="model_err_http">Download failed.</string>
+    <string name="model_eg2_440m_desc">Multimodal (text + image) embeddings, 768 dims. Recommended default.</string>
+    <string name="model_eg2_740m_desc">Larger multimodal model that also supports audio.</string>
+    <string name="model_mobileclip2_desc">Very small English-only image–text model.</string>
+    <string name="model_chat_gemma4_e2b_desc">Google\'s multimodal chat model (text and images), about 2 B effective parameters. Recommended default.</string>
+    <string name="model_chat_gemma4_e4b_desc">Larger and more capable than E2B (text and images). Needs more memory.</string>
+    <string name="model_chat_qwen_desc">Smaller text-only chat model; faster on weak phones, weaker at using tools.</string>
+    <string name="model_mlkit_desc">Google ML Kit text recognition for Korean and Latin scripts. Runs offline.</string>
+    <string name="model_ppocr_desc">PaddleOCR mobile model for Korean text.</string>
+    <string name="model_sensevoice_desc">Recognises Korean, English, Chinese and Japanese speech offline.</string>
+    <string name="model_moonshine_desc">Very small speech recognition model, one language per model.</string>
+
+    <string name="metered_title">Download on a metered network?</string>
+    <string name="metered_body">You are on mobile data or a metered Wi-Fi. %1$s is %2$s.</string>
+    <string name="metered_now">Download now</string>
+    <string name="metered_wifi">Wait for Wi-Fi</string>
+
+    <string name="switch_title">Change the %1$s model?</string>
+    <string name="switch_body_reindex">Vectors from different models cannot be compared. Apps that use this category must re-create all their data with %1$s (for example, Nunsori indexes all files again), which takes a while and uses the battery.\n\nApps that use it: %2$s</string>
+    <string name="switch_body_derived">Text that apps derived with the old model may differ from what %1$s produces; they may redo that work.\n\nApps that use it: %2$s</string>
+    <string name="switch_no_apps">none so far</string>
+    <string name="switch_confirm">Change</string>
+
+    <string name="apps_empty">No app has used OndolSaem yet.</string>
+    <string name="apps_no_requests">no requests since start</string>
+    <string name="apps_usage">%1$d requests · avg %2$d ms · %3$s</string>
+    <string name="apps_forget">Forget</string>
+    <string name="apps_note">Apps listed here are notified when a model they use changes. Request counts start over when OndolSaem restarts.</string>
+
+    <string name="settings_hf_token">Hugging Face token</string>
+    <string name="settings_hf_token_desc">Only needed for models whose license must be accepted on huggingface.co. Stored on this device and sent only to huggingface.co.</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_api">Service API</string>
+    <string name="settings_about_body">OndolSaem keeps on-device AI models for other apps. Models run on this phone; nothing you search, say or show is sent anywhere.</string>
 </resources>

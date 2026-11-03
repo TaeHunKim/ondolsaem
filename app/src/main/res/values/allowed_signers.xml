@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      SHA-256 digests (hex) of signing certificates whose apps may use the host, besides apps signed with the host's
+      own key. Lets a debug client talk to a release host and the other way round. Get a digest with
+      `apksigner verify -print-certs some.apk`. See docs/architecture.md, "Access control".
+    -->
+    <string-array name="allowed_signers" translatable="false">
+        <!-- release key (~/.nunsori-keys/nunsori-release.jks), shared by Nunsori and OndolSaem -->
+        <item>de738c433f930769727fe392e0d35a67dcf9a6365f063d22d35371663b9e4cd4</item>
+        <!-- debug key of the maintainer's machine -->
+        <item>48d41b9d30015b21f7dfeb53dd0cb5f0b445c32847a7f4d0923f7e93418732fb</item>
+    </string-array>
+</resources>

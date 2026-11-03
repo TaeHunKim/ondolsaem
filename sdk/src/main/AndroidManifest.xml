@@ -4,4 +4,14 @@
     <queries>
         <package android:name="io.github.taehunkim.ondolsaem" />
     </queries>
+    <application>
+        <!-- Model-change hints from the host; exported because the host is another app. -->
+        <receiver
+            android:name="io.github.taehunkim.ondolsaem.sdk.ModelChangedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.github.taehunkim.ondolsaem.action.MODEL_CHANGED" />
+            </intent-filter>
+        </receiver>
+    </application>
 </manifest>

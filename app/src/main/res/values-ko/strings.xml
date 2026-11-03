@@ -1,4 +1,104 @@
 <resources>
     <string name="app_name">온돌샘</string>
     <string name="tagline">여러 앱이 함께 쓰는 온디바이스 AI 모델</string>
+
+    <string name="tab_dashboard">메모리</string>
+    <string name="tab_models">모델</string>
+    <string name="tab_apps">앱</string>
+    <string name="tab_settings">설정</string>
+
+    <string name="action_cancel">취소</string>
+    <string name="action_save">저장</string>
+    <string name="action_load">지금 올리기</string>
+    <string name="action_unload">지금 내리기</string>
+
+    <string name="channel_download">모델 다운로드</string>
+    <string name="channel_resident">메모리에 유지 중인 모델</string>
+    <string name="notif_download_title">%1$s 다운로드 중</string>
+    <string name="notif_resident_title">AI 모델을 메모리에 유지 중</string>
+    <string name="notif_resident_text">모델 %1$d개 · 약 %2$d MB</string>
+
+    <string name="cat_embedding">임베딩 (검색)</string>
+    <string name="cat_embedding_desc">텍스트·이미지·음성을 벡터로 바꿔 앱이 의미로 검색할 수 있게 합니다. 앱이 이 벡터를 저장하므로 모델을 바꾸면 앱이 데이터를 다시 만들어야 합니다.</string>
+    <string name="cat_llm">채팅 (언어 모델)</string>
+    <string name="cat_llm_desc">질문에 답하고 요약하며 앱의 도구를 호출합니다. 가장 큰 모델들로, 저장 공간과 메모리를 1.5~4GB 씁니다.</string>
+    <string name="cat_ocr">글자 인식 (OCR)</string>
+    <string name="cat_ocr_desc">사진과 스캔한 문서의 글자를 읽습니다.</string>
+    <string name="cat_asr">음성 인식</string>
+    <string name="cat_asr_desc">녹음과 영상 속 말소리를 글로 바꿉니다. 말소리가 있는 구간 찾기는 다운로드 없이 동작합니다.</string>
+
+    <string name="residency_keep">항상 유지</string>
+    <string name="residency_immediate">사용 직후 내림</string>
+    <string name="residency_idle_1m">1분 후 내림</string>
+    <string name="residency_idle_2m">2분 후 내림</string>
+    <string name="residency_idle_5m">5분 후 내림</string>
+    <string name="residency_idle_15m">15분 후 내림</string>
+
+    <string name="dash_device">기기 메모리</string>
+    <string name="dash_available">사용 가능</string>
+    <string name="dash_low_threshold">메모리 부족 기준</string>
+    <string name="dash_low_memory">기기 메모리가 부족합니다. 항상 유지로 설정하지 않은 모델부터 내립니다.</string>
+    <string name="dash_process">온돌샘 프로세스</string>
+    <string name="dash_total">전체 (PSS)</string>
+    <string name="dash_native">네이티브 (모델)</string>
+    <string name="dash_graphics">그래픽 (GPU)</string>
+    <string name="dash_java">Java</string>
+    <string name="dash_no_model">선택된 모델 없음</string>
+    <string name="dash_not_loaded">내려가 있음</string>
+    <string name="dash_backend">실행 장치</string>
+    <string name="dash_model_memory">올렸을 때 메모리</string>
+    <string name="dash_in_use_by">사용 중인 앱</string>
+    <string name="dash_idle">없음 (대기)</string>
+    <string name="dash_unloads_in">내리기까지</string>
+    <string name="dash_policy">정책</string>
+
+    <string name="models_residency">메모리</string>
+    <string name="models_chat_context">문맥 길이 (토큰. 긴 대화일수록 메모리를 더 씀)</string>
+    <string name="model_download">다운로드</string>
+    <string name="model_retry">다시 시도</string>
+    <string name="model_delete">삭제</string>
+    <string name="model_installed">설치됨</string>
+    <string name="model_bundled">앱에 내장</string>
+    <string name="model_coming_soon">곧 지원 예정</string>
+    <string name="model_waiting_wifi">Wi-Fi 연결 대기 중</string>
+    <string name="model_downloading">다운로드 중… %1$d%%</string>
+    <string name="model_selected_missing">선택했지만 아직 받지 않았습니다. 받기 전까지 앱이 이 카테고리를 쓸 수 없습니다.</string>
+    <string name="model_err_auth">접근이 거부되었습니다. 설정에 Hugging Face 토큰을 입력하고 huggingface.co에서 모델 라이선스에 동의해 주세요.</string>
+    <string name="model_err_not_found">Hugging Face에서 모델 파일을 찾을 수 없습니다.</string>
+    <string name="model_err_network">네트워크 오류입니다. 다시 시도하면 이어서 받습니다.</string>
+    <string name="model_err_http">다운로드에 실패했습니다.</string>
+    <string name="model_eg2_440m_desc">텍스트와 이미지를 함께 다루는 멀티모달 임베딩(768차원). 기본 추천 모델입니다.</string>
+    <string name="model_eg2_740m_desc">음성까지 지원하는 더 큰 멀티모달 모델입니다.</string>
+    <string name="model_mobileclip2_desc">영어 전용의 아주 작은 이미지–텍스트 모델입니다.</string>
+    <string name="model_chat_gemma4_e2b_desc">구글의 멀티모달 채팅 모델(텍스트·이미지), 유효 파라미터 약 20억. 추천 기본값.</string>
+    <string name="model_chat_gemma4_e4b_desc">E2B보다 크고 성능이 좋습니다(텍스트·이미지). 메모리를 더 씁니다.</string>
+    <string name="model_chat_qwen_desc">더 작은 텍스트 전용 채팅 모델. 약한 폰에서 빠르지만 도구 사용 능력은 낮습니다.</string>
+    <string name="model_mlkit_desc">한국어와 라틴 문자를 인식하는 Google ML Kit 텍스트 인식. 오프라인으로 동작합니다.</string>
+    <string name="model_ppocr_desc">한국어용 PaddleOCR 모바일 모델입니다.</string>
+    <string name="model_sensevoice_desc">한국어, 영어, 중국어, 일본어 음성을 오프라인으로 인식합니다.</string>
+    <string name="model_moonshine_desc">아주 작은 음성 인식 모델입니다. 모델마다 한 가지 언어만 지원합니다.</string>
+
+    <string name="metered_title">데이터 요금이 드는 네트워크에서 받을까요?</string>
+    <string name="metered_body">지금 모바일 데이터 또는 데이터 제한 Wi-Fi에 연결되어 있습니다. %1$s의 크기는 %2$s입니다.</string>
+    <string name="metered_now">지금 받기</string>
+    <string name="metered_wifi">Wi-Fi에서 받기</string>
+
+    <string name="switch_title">%1$s 모델을 바꿀까요?</string>
+    <string name="switch_body_reindex">서로 다른 모델의 벡터는 비교할 수 없습니다. 이 카테고리를 쓰는 앱은 %1$s(으)로 데이터를 모두 다시 만들어야 하며(예: 눈소리는 모든 파일을 다시 인덱싱), 시간과 배터리가 듭니다.\n\n사용 중인 앱: %2$s</string>
+    <string name="switch_body_derived">앱이 이전 모델로 만든 텍스트가 %1$s의 결과와 다를 수 있어, 앱이 그 작업을 다시 할 수 있습니다.\n\n사용 중인 앱: %2$s</string>
+    <string name="switch_no_apps">아직 없음</string>
+    <string name="switch_confirm">바꾸기</string>
+
+    <string name="apps_empty">아직 온돌샘을 사용한 앱이 없습니다.</string>
+    <string name="apps_no_requests">시작 후 요청 없음</string>
+    <string name="apps_usage">요청 %1$d회 · 평균 %2$d ms · %3$s</string>
+    <string name="apps_forget">목록에서 지우기</string>
+    <string name="apps_note">여기 있는 앱은 자신이 쓰는 모델이 바뀌면 알림을 받습니다. 요청 수는 온돌샘이 다시 시작되면 초기화됩니다.</string>
+
+    <string name="settings_hf_token">Hugging Face 토큰</string>
+    <string name="settings_hf_token_desc">huggingface.co에서 라이선스 동의가 필요한 모델에만 필요합니다. 이 기기에 저장되며 huggingface.co에만 전송됩니다.</string>
+    <string name="settings_about">정보</string>
+    <string name="settings_version">버전</string>
+    <string name="settings_api">서비스 API</string>
+    <string name="settings_about_body">온돌샘은 다른 앱을 위해 온디바이스 AI 모델을 맡아 둡니다. 모델은 이 폰에서 실행되며, 검색하거나 말하거나 보여 준 내용은 어디에도 전송되지 않습니다.</string>
 </resources>

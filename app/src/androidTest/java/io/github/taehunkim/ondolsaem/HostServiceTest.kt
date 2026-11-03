@@ -1,0 +1,250 @@
+package io.github.taehunkim.ondolsaem
+
+import android.graphics.Bitmap
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import io.github.taehunkim.ondolsaem.engine.ChatEvent
+import io.github.taehunkim.ondolsaem.engine.ChatModel
+import io.github.taehunkim.ondolsaem.engine.ChatTool
+import io.github.taehunkim.ondolsaem.engine.ChatTurn
+import io.github.taehunkim.ondolsaem.engine.Cue
+import io.github.taehunkim.ondolsaem.engine.Embedder
+import io.github.taehunkim.ondolsaem.engine.OcrEngine
+import io.github.taehunkim.ondolsaem.engine.Span
+import io.github.taehunkim.ondolsaem.engine.SpeechTools
+import io.github.taehunkim.ondolsaem.runtime.Residency
+import io.github.taehunkim.ondolsaem.sdk.ChatStreamEvent
+import io.github.taehunkim.ondolsaem.sdk.HistoryTurn
+import io.github.taehunkim.ondolsaem.sdk.HostCallException
+import io.github.taehunkim.ondolsaem.sdk.OndolSaem
+import io.github.taehunkim.ondolsaem.sdk.OndolSaem.Categories
+import io.github.taehunkim.ondolsaem.sdk.OndolSaemClient
+import io.github.taehunkim.ondolsaem.sdk.ToolSpec
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.json.JSONObject
+import org.junit.After
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import java.io.ByteArrayOutputStream
+import java.io.File
+
+/**
+ * Talks to the real bound service through the SDK client, with fake engines in place of the models (the test runs
+ * in the host's own process, which the caller check always allows). Does not depend on downloaded models.
+ */
+@RunWith(AndroidJUnit4::class)
+class HostServiceTest {
+    private val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+    private val container get() = (ctx.applicationContext as OndolSaemApp).container
+    private val runtime get() = container.runtime
+    private lateinit var client: OndolSaemClient
+
+    private class FakeEmbedder(override val modelId: String) : Embedder {
+        var closed = false
+        override suspend fun embedImage(jpeg: ByteArray) = floatArrayOf(jpeg.size.toFloat(), jpeg.last().toFloat())
+        override suspend fun embedDocument(text: String, title: String?) = floatArrayOf(2f, text.length.toFloat())
+        override suspend fun embedQuery(text: String) = floatArrayOf(1f, text.length.toFloat())
+        override suspend fun embedImages(jpegs: List<ByteArray>) = floatArrayOf(jpegs.size.toFloat())
+        override fun close() { closed = true }
+    }
+
+    /** Calls the first tool, then streams the tool's result back word by word (or slowly forever when asked). */
+    private class FakeChat : ChatModel {
+        override val supportsImages = true
+        var cancelled = CompletableDeferred<Unit>()
+        var lastKey: String? = null
+        var lastHistory: List<ChatTurn> = emptyList()
+        override fun reply(conversationKey: String, system: String, history: List<ChatTurn>, user: ChatTurn, tools: List<ChatTool>): Flow<ChatEvent> =
+            channelFlow {
+                lastKey = conversationKey; lastHistory = history
+                if (user.text == "forever") {
+                    try { send(ChatEvent.Token("…")); awaitCancellation() } finally { cancelled.complete(Unit) }
+                }
+                val tool = tools.firstOrNull()
+                if (tool != null) {
+                    val args = JSONObject().put("q", user.text).toString()
+                    val result = tool.execute(JSONObject(args))
+                    send(ChatEvent.ToolRan(tool.name, args, result))
+                    result.split(" ").forEach { send(ChatEvent.Token("$it ")) }
+                } else {
+                    send(ChatEvent.Token("images=${user.images.size} "))
+                    send(ChatEvent.Token("system=$system"))
+                }
+            }
+        override fun reset() {}
+        override fun close() {}
+    }
+
+    private class FakeSpeech(override val canTranscribe: Boolean) : SpeechTools {
+        override suspend fun speechSpans(pcm: File) = listOf(Span(0, pcm.length() / 32), Span(5_000, 6_000))
+        override suspend fun transcribe(pcm: File, fromMs: Long, onCue: suspend (Cue) -> Unit) {
+            for (i in 0 until 5) onCue(Cue(fromMs + i * 1000, fromMs + i * 1000 + 900, "cue$i"))
+        }
+    }
+
+    private lateinit var embedder: FakeEmbedder
+    private val chat = FakeChat()
+    private var embedLoads = 0
+
+    @Before fun setUp() = runBlocking {
+        runtime.readyOverride = { true }
+        runtime.embedderFactory = { spec, _ -> embedLoads++; FakeEmbedder(spec.id).also { embedder = it } }
+        runtime.chatFactory = { _, _, _ -> chat }
+        runtime.ocrFactory = { spec -> object : OcrEngine {
+            override val modelId = spec.id
+            override suspend fun recognize(bitmap: Bitmap) = "${bitmap.width}x${bitmap.height}"
+        } }
+        runtime.speechFactory = { dir -> FakeSpeech(dir != null) }
+        for (c in listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR)) {
+            container.settings.setResidency(c, Residency.IDLE_2M)
+            runtime.unload(c)
+        }
+        container.settings.setActiveModel(Categories.EMBEDDING, "eg2-440m")
+        client = OndolSaemClient(ctx, idleUnbindMs = 500)
+    }
+
+    @After fun tearDown() = runBlocking {
+        runtime.readyOverride = null
+        client.disconnect()
+        for (c in listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR)) runtime.unload(c)
+    }
+
+    @Test fun reportsApiAndCategories() = runBlocking {
+        assertEquals(OndolSaem.API_VERSION, client.apiVersion())
+        val cats = client.categories().map { it.category }
+        assertEquals(listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR), cats)
+        val emb = client.activeModel(Categories.EMBEDDING)!!
+        assertEquals("eg2-440m", emb.id)
+        assertTrue(emb.ready)
+        assertNull(client.activeModel("no-such-category"))
+    }
+
+    @Test fun embedsTextWithModelIdentity() = runBlocking {
+        val q = client.embedQuery("hello")
+        assertArrayEquals(floatArrayOf(1f, 5f), q.vector, 0f)
+        assertEquals("eg2-440m", q.modelId)
+        assertEquals(1, q.modelVersion)
+        val d = client.embedDocument("abc", "t")
+        assertArrayEquals(floatArrayOf(2f, 3f), d.vector, 0f)
+        assertEquals("loaded once for both calls", 1, embedLoads)
+    }
+
+    @Test fun passesLargeInputsAsFileDescriptors() = runBlocking {
+        val big = ByteArray(3_000_000) { (it % 7).toByte() } // well over Binder's 1 MB limit
+        val r = client.embedImage(big)
+        assertArrayEquals(floatArrayOf(3_000_000f, big.last().toFloat()), r.vector, 0f)
+        assertArrayEquals(floatArrayOf(3f), client.embedImages(listOf(big, big, big)).vector, 0f)
+    }
+
+    @Test fun missingModelIsReportedAsNotReady() = runBlocking {
+        runtime.readyOverride = { false }
+        try {
+            client.embedQuery("x"); fail("expected an error")
+        } catch (e: HostCallException) {
+            assertEquals(OndolSaem.Errors.MODEL_NOT_READY, e.code)
+        }
+        assertFalse(client.activeModel(Categories.EMBEDDING)!!.ready)
+    }
+
+    @Test fun immediateResidencyUnloadsAfterTheCallButLeaseKeepsIt() = runBlocking {
+        container.settings.setResidency(Categories.EMBEDDING, Residency.IMMEDIATE)
+        client.embedQuery("a")
+        withTimeout(2_000) { while (runtime.embedding.isLoaded) delay(20) }
+        assertTrue(embedder.closed)
+        val lease = client.acquire(Categories.EMBEDDING)
+        client.embedQuery("b"); client.embedQuery("c")
+        assertTrue("held by the lease", runtime.embedding.isLoaded)
+        assertEquals(mapOf(ctx.packageName to 1), runtime.embedding.state.value!!.holders.filterValues { it > 0 })
+        lease.close()
+        withTimeout(2_000) { while (runtime.embedding.isLoaded) delay(20) }
+    }
+
+    @Test fun chatStreamsAndRunsToolsInTheClient() = runBlocking {
+        val events = client.chat(
+            "conv1", "sys", listOf(HistoryTurn(true, "earlier"), HistoryTurn(false, "answer")), "find cats",
+            tools = listOf(ToolSpec("search", "searches", """{"type":"object","properties":{"q":{"type":"string"}}}""")),
+        ) { name, args -> "$name got ${JSONObject(args).getString("q")}" }.toList()
+        val ran = events.filterIsInstance<ChatStreamEvent.ToolRan>().single()
+        assertEquals("search", ran.name)
+        assertEquals("search got find cats", ran.result)
+        assertEquals("search got find cats ", events.filterIsInstance<ChatStreamEvent.Token>().joinToString("") { it.text })
+        assertEquals("${ctx.packageName}|conv1", chat.lastKey)
+        assertEquals(listOf("earlier", "answer"), chat.lastHistory.map { it.text })
+    }
+
+    @Test fun chatPassesImages() = runBlocking {
+        val text = client.chat("c", "S", emptyList(), "look", userImages = listOf(ByteArray(10), ByteArray(20)))
+            .toList().filterIsInstance<ChatStreamEvent.Token>().joinToString("") { it.text }
+        assertEquals("images=2 system=S", text)
+    }
+
+    @Test fun cancellingTheCollectorCancelsGeneration() = runBlocking {
+        val first = client.chat("c", "", emptyList(), "forever").take(1).first()
+        assertEquals(ChatStreamEvent.Token("…"), first)
+        withTimeout(5_000) { chat.cancelled.await() }
+    }
+
+    @Test fun ocrDecodesTheImage() = runBlocking {
+        val bmp = Bitmap.createBitmap(40, 30, Bitmap.Config.ARGB_8888)
+        val png = ByteArrayOutputStream().also { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+        assertEquals("40x30", client.recognizeText(png))
+        try { client.recognizeText(byteArrayOf(1, 2, 3)); fail() } catch (e: HostCallException) {
+            assertEquals(OndolSaem.Errors.BAD_INPUT, e.code)
+        }
+    }
+
+    @Test fun speechSpansAndTranscriptionWithEarlyStop() = runBlocking {
+        val pcm = File.createTempFile("test", ".pcm", ctx.cacheDir).apply { writeBytes(ByteArray(32_000)) }
+        try {
+            assertTrue(client.canTranscribe())
+            assertEquals(listOf(0L..1000L, 5000L..6000L), client.speechSpans(pcm))
+            val cues = ArrayList<String>()
+            client.transcribe(pcm, 10_000) { start, _, text -> cues += "$start:$text" }
+            assertEquals(listOf("10000:cue0", "11000:cue1", "12000:cue2", "13000:cue3", "14000:cue4"), cues)
+            // the client stops after two cues: the host must stop too
+            val job = async {
+                client.transcribe(pcm, 0) { _, _, text -> cues += text; if (text == "cue1") throw kotlinx.coroutines.CancellationException("enough") }
+            }
+            runCatching { job.await() }
+            assertEquals("cue1", cues.last())
+        } finally { pcm.delete() }
+    }
+
+    @Test fun modelChangeReachesConnectedClients() = runBlocking {
+        client.apiVersion() // connect and register
+        val got = async { withTimeout(5_000) { client.modelChanges.first { it.category == Categories.EMBEDDING } } }
+        delay(100)
+        container.selectModel(Categories.EMBEDDING, "eg2-740m")
+        val info = got.await()
+        assertEquals("eg2-740m", info.id)
+        assertTrue(info.audio)
+        assertNotNull(client.activeModel(Categories.EMBEDDING))
+        container.settings.setActiveModel(Categories.EMBEDDING, "eg2-440m")
+    }
+
+    @Test fun clientRebindsAfterIdleUnbind() = runBlocking {
+        client.apiVersion()
+        assertTrue(client.connected.value)
+        withTimeout(5_000) { while (client.connected.value) delay(50) }
+        assertEquals(OndolSaem.API_VERSION, client.apiVersion())
+    }
+}

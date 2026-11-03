@@ -8,9 +8,9 @@
 - **ONDOL**: On-device Neural Deployment & Orchestration Layer
 - **SAEM**: Shared AI Engine Manager
 
-상태: 초기 개발 단계(0.1.0 뼈대). 첫 클라이언트는 온디바이스 시맨틱 검색 앱 [눈소리 / Nunsori](https://github.com/taehunkim/nunsori)입니다.
+상태: 초기 개발 단계(0.1.0). 첫 클라이언트는 온디바이스 시맨틱 검색 앱 [눈소리 / Nunsori](https://github.com/taehunkim/nunsori)입니다.
 
-## 계획된 기능
+## 기능
 
 | 기능 | 설명 |
 |---|---|
@@ -19,6 +19,7 @@
 | 모델 변경 | 임베딩 모델을 바꾸면 다시 임베딩해야 하는 앱을 알려 주는 경고. 사용하는 앱에 즉시 또는 다음 연결 때 알림 |
 | 상주 | 카테고리별로 상시 상주, 사용 직후 내림, N분 후 내림. 내려간 모델은 다음 요청 때 자동으로 다시 올림 |
 | 대시보드 | 기기 메모리, 온돌샘의 메모리 사용량, 올라간 모델과 그 모델을 쓰는 앱 |
+| 앱 | 온돌샘을 쓰는 앱과 카테고리, 요청 통계. 내 앱(같은 서명 키 또는 허용한 키)만 연결 가능 |
 | 클라이언트 SDK | `com.github.taehunkim.ondolsaem:sdk`, [docs/architecture.md](docs/architecture.md) 참고 |
 
 ## 문서

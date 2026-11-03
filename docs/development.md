@@ -12,16 +12,18 @@ Design: [architecture.md](architecture.md).
 | Module | Contents |
 |---|---|
 | `:sdk` | Client contract (AIDL in `src/main/aidl`, constants in `OndolSaem`) and client library. Its manifest adds a `<queries>` entry for the host package to every client app. |
-| `:app` | The host app. |
+| `:app` | The host app (code map in [architecture.md](architecture.md)). Before the first build run `scripts/fetch-sherpa-onnx.sh` (sherpa-onnx AAR into `app/libs`, Silero VAD into `app/src/main/assets`; neither is committed). |
 
 ## Build and test
 
 | Level | Command |
 |---|---|
 | Unit | `./gradlew assembleDebug testDebugUnitTest` |
-| Instrumented | `./gradlew connectedDebugAndroidTest` (needs a device; uninstalls the app at the end, which deletes downloaded models) |
+| Instrumented | `./gradlew connectedDebugAndroidTest` (needs a device; uninstalls the app at the end, which deletes downloaded models). `HostServiceTest` drives the real bound service through `OndolSaemClient` with fake engines (`ModelRuntime`'s factory and `readyOverride` hooks), so it needs no model. |
 
-Scripts (`scripts/`): `emu-start.sh [--window]`, `emu-stop.sh`, `run.sh` (installDebug + launch), `logcat.sh [N]`, `screenshot.sh`. The emulator AVD `lsa_api36` is shared with Nunsori.
+Scripts (`scripts/`): `fetch-sherpa-onnx.sh`, `emu-start.sh [--window]`, `emu-stop.sh`, `run.sh` (installDebug + launch), `logcat.sh [N]`, `screenshot.sh`.
+
+To let a client built on another machine (another debug key) connect, add that key's SHA-256 to `app/src/main/res/values/allowed_signers.xml` (`apksigner verify --print-certs app-debug.apk`). The emulator AVD `lsa_api36` is shared with Nunsori.
 
 ## Working with a client app
 
