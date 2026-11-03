@@ -51,7 +51,7 @@ JitPack builds the SDK from a git tag (`jitpack.yml` runs `:sdk:publishReleasePu
 3. Local check without JitPack: `./gradlew :sdk:publishReleasePublicationToMavenLocal` (writes to `~/.m2`).
 4. Open `https://jitpack.io/com/github/TaeHunKim/ondolsaem/<tag>/build.log` to start the build and read its log (status: `https://jitpack.io/api/builds/com.github.TaeHunKim/ondolsaem/<tag>`).
 
-JitPack finds the one artifact the build publishes (`com.github.taehunkim.ondolsaem:sdk`) and serves it as `com.github.TaeHunKim:ondolsaem:<tag>` (`.aar`, `.pom`, `.module`). Checked with `sdk-v0.2.0`: JitPack's `openjdk21` builds it (Gradle 9.8.2, AGP 9.5; a JDK 25 is not needed), and Nunsori builds from that artifact.
+JitPack finds the one artifact the build publishes (`com.github.taehunkim.ondolsaem:sdk`) and serves it as `com.github.TaeHunKim:ondolsaem:<tag>` (`.aar`, `.pom`, `.module`). Checked with `sdk-v0.2.0`: JitPack's `openjdk21` builds it (Gradle 9.8.2, AGP 9.5; a JDK 25 is not needed), and Nunsori builds from that artifact. Since `sdk-v0.3.0` the `:app` module declares an NDK (JNI bridge); JitPack installs NDK 28.2 on its own while configuring the build (about a minute more) and still builds only `:sdk`; Nunsori 0.9.0 builds from `sdk-v0.3.0`.
 
 ## Release build
 
