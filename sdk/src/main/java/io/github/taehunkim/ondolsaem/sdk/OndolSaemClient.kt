@@ -327,7 +327,7 @@ class OndolSaemClient(
             } catch (e: IllegalStateException) {
                 throw HostErrors.decode(e) ?: e
             } catch (e: SecurityException) {
-                throw HostUnavailableException(HostUnavailableException.Reason.NOT_ALLOWED, e.message, e)
+                throw HostErrors.refusal(e)
             }
         }
     }
@@ -355,7 +355,7 @@ class OndolSaemClient(
             throw err
         } catch (e: SecurityException) {
             disconnectLocked()
-            throw HostUnavailableException(HostUnavailableException.Reason.NOT_ALLOWED, e.message, e)
+            throw HostErrors.refusal(e)
         } catch (e: DeadObjectException) {
             disconnectLocked()
             throw HostUnavailableException(HostUnavailableException.Reason.NO_ANSWER, "host died", e)

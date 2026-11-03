@@ -46,6 +46,18 @@ private val Spring = Color(0xFF2F7FB6)
 class MainActivity : AppCompatActivity() {
     private val notifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
+    /** Tab requested by the launching intent (the approval list for [OndolSaem.ACTION_APPROVE]). */
+    private val requestedTab = androidx.compose.runtime.mutableStateOf<Int?>(null)
+
+    private fun route(intent: android.content.Intent?) {
+        if (intent?.action == io.github.taehunkim.ondolsaem.sdk.OndolSaem.ACTION_APPROVE) requestedTab.value = TAB_APPS
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        route(intent)
+    }
+
     /** Visible now, so Android allows the keep-alive service if it was refused in the background. */
     override fun onStart() {
         super.onStart()
@@ -57,12 +69,15 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= 33) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        route(intent)
         setContent {
             val scheme = if (isSystemInDarkTheme()) darkColorScheme(primary = Warm, secondary = Spring)
             else lightColorScheme(primary = Warm, secondary = Spring)
             MaterialTheme(colorScheme = scheme) {
                 val vm: HostViewModel = viewModel()
                 var tab by rememberSaveable { mutableIntStateOf(0) }
+                val wanted by requestedTab
+                androidx.compose.runtime.LaunchedEffect(wanted) { wanted?.let { tab = it; requestedTab.value = null } }
                 val tabs: List<Pair<Int, ImageVector>> = listOf(
                     R.string.tab_dashboard to Icons.Filled.Memory,
                     R.string.tab_models to Icons.Filled.Storage,
@@ -94,5 +109,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        const val TAB_APPS = 2
     }
 }

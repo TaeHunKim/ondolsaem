@@ -316,8 +316,16 @@ fun AppsScreen(vm: HostViewModel) {
     val clients by vm.clients.collectAsState()
     val usage by vm.registry.usage.collectAsState()
     val versions by vm.registry.versions.collectAsState()
+    val approvals by vm.approvals.collectAsState()
     LazyColumn(Modifier.testTag("apps")) {
-        if (clients.isEmpty()) item {
+        if (approvals.isNotEmpty()) item {
+            Text(stringResource(R.string.approvals_title), Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp), style = MaterialTheme.typography.titleSmall)
+        }
+        // waiting requests first, then the newest
+        items(approvals.values.sortedWith(compareBy<io.github.taehunkim.ondolsaem.service.Approval> { it.state != io.github.taehunkim.ondolsaem.service.Approval.State.PENDING }.thenByDescending { it.requestedAt }), key = { "approval_" + it.pkg }) { a ->
+            ApprovalCard(vm, a)
+        }
+        if (clients.isEmpty() && approvals.isEmpty()) item {
             Text(stringResource(R.string.apps_empty), Modifier.padding(16.dp))
         }
         items(clients.keys.sorted()) { pkg ->
@@ -347,6 +355,35 @@ fun AppsScreen(vm: HostViewModel) {
             }
         }
         item { Text(stringResource(R.string.apps_note), Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall) }
+    }
+}
+
+@Composable
+private fun ApprovalCard(vm: HostViewModel, a: io.github.taehunkim.ondolsaem.service.Approval) {
+    SectionCard(vm.label(a.pkg)) {
+        Text(a.pkg, style = MaterialTheme.typography.bodySmall)
+        KeyValue(stringResource(R.string.approvals_cert), a.certSha256.take(23).chunked(2).joinToString(":") + "…")
+        KeyValue(stringResource(R.string.approvals_requested), DateUtils.getRelativeTimeSpanString(a.requestedAt).toString())
+        Text(
+            stringResource(
+                when (a.state) {
+                    io.github.taehunkim.ondolsaem.service.Approval.State.PENDING -> R.string.approvals_pending
+                    io.github.taehunkim.ondolsaem.service.Approval.State.ALLOWED -> R.string.approvals_allowed
+                    io.github.taehunkim.ondolsaem.service.Approval.State.DENIED -> R.string.approvals_denied
+                },
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (a.state == io.github.taehunkim.ondolsaem.service.Approval.State.PENDING) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (a.state != io.github.taehunkim.ondolsaem.service.Approval.State.ALLOWED) androidx.compose.material3.Button(onClick = { vm.decideApproval(a.pkg, true) }, Modifier.testTag("allow_${a.pkg}")) {
+                Text(stringResource(R.string.approvals_allow))
+            }
+            if (a.state != io.github.taehunkim.ondolsaem.service.Approval.State.DENIED) OutlinedButton(onClick = { vm.decideApproval(a.pkg, false) }, Modifier.testTag("deny_${a.pkg}")) {
+                Text(stringResource(if (a.state == io.github.taehunkim.ondolsaem.service.Approval.State.ALLOWED) R.string.approvals_revoke else R.string.approvals_deny))
+            }
+            TextButton(onClick = { vm.forgetApproval(a.pkg) }) { Text(stringResource(R.string.apps_forget)) }
+        }
     }
 }
 

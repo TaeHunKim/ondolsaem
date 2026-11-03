@@ -111,4 +111,15 @@
     <string name="model_err_corrupt">받은 파일이 손상되어 삭제했습니다. 다시 시도하면 처음부터 다시 받습니다.</string>
     <string name="apps_sdk">SDK %1$s · API %2$d</string>
     <string name="settings_min_client_api">지원하는 최소 클라이언트 API</string>
+    <string name="notif_approval_title">%1$s 앱이 온돌샘을 쓰려고 합니다</string>
+    <string name="notif_approval_text">내 앱이 아닙니다. 눌러서 AI 모델 사용을 허용하거나 거부하세요.</string>
+    <string name="approvals_title">다른 앱</string>
+    <string name="approvals_cert">서명 키</string>
+    <string name="approvals_requested">마지막 요청</string>
+    <string name="approvals_pending">결정을 기다리는 중입니다. 허용해야 모델을 쓸 수 있고, 허용하면 이 앱의 입력(텍스트, 이미지, 오디오)이 온돌샘으로 전달되어 이 폰에서 처리됩니다.</string>
+    <string name="approvals_allowed">허용됨</string>
+    <string name="approvals_denied">거부됨</string>
+    <string name="approvals_allow">허용</string>
+    <string name="approvals_deny">거부</string>
+    <string name="approvals_revoke">허용 취소</string>
 </resources>

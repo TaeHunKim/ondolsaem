@@ -43,6 +43,10 @@ class HostViewModel(app: Application) : AndroidViewModel(app) {
 
     val modelStates = c.modelManager.states
 
+    val approvals = c.approvals.all
+    fun decideApproval(pkg: String, allow: Boolean) = c.decideApproval(pkg, allow)
+    fun forgetApproval(pkg: String) = c.approvals.forget(pkg)
+
     val keepAliveBlocked = c.keepAliveBlocked
     fun retryKeepAlive() = c.retryKeepAlive(force = true)
     fun batteryOptimized(): Boolean =

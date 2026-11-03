@@ -63,6 +63,26 @@ object Notifications {
             .build()
     }
 
+    /** One notification per app asking for approval. */
+    fun approvalId(pkg: String) = 2000 + (pkg.hashCode() and 0xfff)
+
+    /** An app that is not one of the user's own asks to use the models; tapping opens the approval list. */
+    fun approvalRequest(ctx: Context, label: String): Notification {
+        ensureChannels(ctx)
+        val open = PendingIntent.getActivity(
+            ctx, 1, Intent(ctx, MainActivity::class.java).setAction(io.github.taehunkim.ondolsaem.sdk.OndolSaem.ACTION_APPROVE)
+                .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        return NotificationCompat.Builder(ctx, CH_ALERTS)
+            .setSmallIcon(R.drawable.ic_stat_ondolsaem)
+            .setContentTitle(ctx.getString(R.string.notif_approval_title, label))
+            .setContentText(ctx.getString(R.string.notif_approval_text))
+            .setAutoCancel(true)
+            .setContentIntent(open)
+            .build()
+    }
+
     /** Android refused the keep-alive service; tapping opens the app, which starts it again. */
     fun keepAliveBlocked(ctx: Context): Notification {
         ensureChannels(ctx)

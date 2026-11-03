@@ -35,6 +35,11 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Clients open the approval list with OndolSaem.approvalIntent(). -->
+            <intent-filter>
+                <action android:name="io.github.taehunkim.ondolsaem.action.APPROVE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
 
         <!-- Bound by client apps. Exported without a permission on purpose: every call checks the caller's

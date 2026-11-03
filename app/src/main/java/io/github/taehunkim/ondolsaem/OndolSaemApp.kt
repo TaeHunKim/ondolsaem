@@ -26,9 +26,21 @@ class HostContainer(val app: Application) {
     val settings = HostSettings(app)
     val modelManager = ModelManager(app, settings)
     val runtime = ModelRuntime(app, modelManager, settings, scope)
-    val caller = CallerCheck(app)
+    val approvals = io.github.taehunkim.ondolsaem.service.Approvals(settings, scope)
+    val caller = CallerCheck(app, approvals).also { c ->
+        c.onRequest = { pkg -> Notifications.notify(app, Notifications.approvalId(pkg), Notifications.approvalRequest(app, registryLabel(pkg))) }
+    }
     val registry = ClientRegistry(app, settings, scope)
     val notifier = ModelChangeNotifier(app, settings)
+
+    private fun registryLabel(pkg: String) = registry.label(pkg)
+
+    /** The user decided about a third-party app (approval list or notification). */
+    fun decideApproval(pkg: String, allow: Boolean) {
+        approvals.decide(pkg, allow)
+        Notifications.cancel(app, Notifications.approvalId(pkg))
+        if (allow) scope.launch { settings.recordClientUse(pkg, null) }
+    }
 
     /**
      * API level this host reports (normally the SDK's [io.github.taehunkim.ondolsaem.sdk.OndolSaem.API_VERSION];

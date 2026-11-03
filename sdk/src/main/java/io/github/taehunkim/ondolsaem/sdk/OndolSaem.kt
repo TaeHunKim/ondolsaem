@@ -56,5 +56,18 @@ object OndolSaem {
         const val CANCELLED = 4
         /** The client's API level is below the host's minimum: the client app must be updated. */
         const val CLIENT_TOO_OLD = 5
+        /**
+         * This app is not signed with one of the host's own keys and the user has not allowed it (yet). The first
+         * call asks the user in OndolSaem; open [approvalIntent] to take them there. Sent inside a
+         * `SecurityException`, so clients built before it was added see a plain refusal (`NOT_ALLOWED`).
+         */
+        const val NOT_APPROVED = 6
     }
+
+    /** Opens OndolSaem's list of apps waiting for approval. */
+    const val ACTION_APPROVE = "$PACKAGE.action.APPROVE"
+
+    /** Intent that opens the approval list in OndolSaem, in OndolSaem's own task. */
+    fun approvalIntent(): android.content.Intent =
+        android.content.Intent(ACTION_APPROVE).setPackage(PACKAGE).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK) // its own task, not the client's
 }

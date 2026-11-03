@@ -111,4 +111,15 @@
     <string name="model_err_corrupt">The downloaded file was damaged and has been deleted. Retry to download it again.</string>
     <string name="apps_sdk">SDK %1$s · API %2$d</string>
     <string name="settings_min_client_api">Oldest supported client API</string>
+    <string name="notif_approval_title">%1$s wants to use OndolSaem</string>
+    <string name="notif_approval_text">It is not one of your own apps. Tap to allow or deny its access to your AI models.</string>
+    <string name="approvals_title">Other apps</string>
+    <string name="approvals_cert">Signing key</string>
+    <string name="approvals_requested">Last request</string>
+    <string name="approvals_pending">Waiting for your decision. It can use the models only after you allow it; it then sends its inputs (text, images, audio) to OndolSaem, which runs them on this phone.</string>
+    <string name="approvals_allowed">Allowed</string>
+    <string name="approvals_denied">Denied</string>
+    <string name="approvals_allow">Allow</string>
+    <string name="approvals_deny">Deny</string>
+    <string name="approvals_revoke">Revoke</string>
 </resources>

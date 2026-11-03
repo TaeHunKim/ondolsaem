@@ -12,6 +12,11 @@ class HostUnavailableException(val reason: Reason, message: String? = null, caus
         NOT_INSTALLED,
         /** The host does not trust this app's signing key. */
         NOT_ALLOWED,
+        /**
+         * The user has not allowed this app in OndolSaem yet (the request is waiting there) or denied it. Show
+         * [OndolSaem.approvalIntent].
+         */
+        NOT_APPROVED,
         NO_ANSWER,
         /** The host's API level is lower than this call (or this client) needs: update OndolSaem. */
         HOST_TOO_OLD,
@@ -28,6 +33,13 @@ class HostCallException(val code: Int, message: String?) : OndolSaemException(me
  * as `IllegalStateException("ondolsaem:<code>:<message>")`.
  */
 object HostErrors {
+    /** Client side: the reason for a refused call (the host marks approval refusals with [OndolSaem.Errors.NOT_APPROVED]). */
+    fun refusal(e: SecurityException): HostUnavailableException {
+        val err = e.message?.let { decode(IllegalStateException(it)) }
+        return if (err?.code == OndolSaem.Errors.NOT_APPROVED) HostUnavailableException(HostUnavailableException.Reason.NOT_APPROVED, err.message, e)
+        else HostUnavailableException(HostUnavailableException.Reason.NOT_ALLOWED, e.message, e)
+    }
+
     private const val PREFIX = "ondolsaem:"
 
     /** Host side: the exception to throw from a Binder method. */

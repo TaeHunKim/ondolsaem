@@ -18,4 +18,12 @@ class HostErrorsTest {
     @Test fun otherExceptionsAreNotHostErrors() {
         assertNull(HostErrors.decode(IllegalStateException("something else")))
     }
+
+    @Test fun approvalRefusalsAreToldApartFromOtherRefusals() {
+        val waiting = SecurityException(HostErrors.encode(OndolSaem.Errors.NOT_APPROVED, "waiting").message)
+        assertEquals(HostUnavailableException.Reason.NOT_APPROVED, HostErrors.refusal(waiting).reason)
+        assertEquals("waiting", HostErrors.refusal(waiting).message)
+        assertEquals(HostUnavailableException.Reason.NOT_ALLOWED, HostErrors.refusal(SecurityException("uid 1 is not allowed")).reason)
+        assertEquals(HostUnavailableException.Reason.NOT_ALLOWED, HostErrors.refusal(SecurityException()).reason)
+    }
 }

@@ -1,6 +1,8 @@
 package io.github.taehunkim.ondolsaem.service
 
+import io.github.taehunkim.ondolsaem.service.CallerCheck.Decision
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -13,4 +15,20 @@ class CallerCheckTest {
     }
 
     @Test fun rejectsWrongLength() { assertNull(CallerCheck.hex("abcd")) }
+
+    private fun stored(state: Approval.State, cert: String = "k1") = Approval("com.example", cert, state, 0)
+
+    @Test fun anUnknownAppIsAsked() { assertEquals(Decision.ASK, CallerCheck.decide(null, "k1")) }
+
+    @Test fun storedDecisionsHoldForTheSameKey() {
+        assertEquals(Decision.ALLOW, CallerCheck.decide(stored(Approval.State.ALLOWED), "k1"))
+        assertEquals(Decision.DENY, CallerCheck.decide(stored(Approval.State.DENIED), "k1"))
+        assertEquals(Decision.WAIT, CallerCheck.decide(stored(Approval.State.PENDING), "k1"))
+    }
+
+    @Test fun aReSignedAppIsAskedAgain() {
+        Approval.State.entries.forEach { assertEquals(Decision.ASK, CallerCheck.decide(stored(it), "k2")) }
+    }
+
+    @Test fun toHexIsLowerCaseAndPadded() { assertEquals("00ff0a", CallerCheck.toHex(byteArrayOf(0, -1, 10))) }
 }

@@ -7,7 +7,7 @@ OndolSaem has no server, no account and no analytics. It runs AI models on the p
 In the app's private storage (removed on uninstall or "Clear data"):
 
 - Downloaded models under `files/models/<model id>/`.
-- Settings (DataStore `host_settings`): the active model and memory policy of each category, the chat context size, the optional Hugging Face token, and the list of client apps (package names and the categories each used). Request counts and timings are kept in memory only.
+- Settings (DataStore `host_settings`): the active model and memory policy of each category, the chat context size, the optional Hugging Face token, the list of client apps (package names and the categories each used), and the decisions about other apps (package, signing-certificate SHA-256, allowed/denied/waiting, time of the last request). Request counts and timings are kept in memory only.
 
 Inputs that client apps send (texts, images, audio, chat messages) are processed in memory and never stored; speech input is copied to a temporary file in the cache for the duration of the call and deleted afterwards. Chat conversation state stays in memory while the chat model is loaded.
 
@@ -22,7 +22,7 @@ Before a download on a metered network (mobile data or metered Wi-Fi) the app as
 
 ## Who can use it
 
-Only apps signed with the same key as OndolSaem, or with a key listed in `app/src/main/res/values/allowed_signers.xml`; every call is checked. Other apps get a `SecurityException`.
+Apps signed with the same key as OndolSaem, or with a key listed in `app/src/main/res/values/allowed_signers.xml`, connect directly. Any other app must be allowed by the user: its first call is refused and OndolSaem shows a notification and an entry in the Apps tab; it can use the models only after the user taps Allow, and stops as soon as the user revokes it. A decision applies to one signing key: the same package signed with another key asks again. Every call is checked. Allowed apps send their inputs to OndolSaem, which processes them on the phone as described above.
 
 ## Permissions
 

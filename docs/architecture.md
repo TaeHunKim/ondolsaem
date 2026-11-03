@@ -62,9 +62,11 @@ The client decides when to redo its work (right away or when idle).
 
 ## Access control
 
-Only own apps may connect. The service is exported **without a permission**; `CallerCheck` verifies the caller on every call instead: a caller is allowed when one of its packages is signed with the host's own key (`checkSignatures`) or with a certificate listed in `res/values/allowed_signers.xml` (SHA-256 hex, checked with `hasSigningCertificate`). The list holds the shared release key and the maintainer's debug key, so a debug client can use a release host and the other way round. Results are cached per uid.
+Own apps connect directly; other apps need the user's approval. The service is exported **without a permission**; `CallerCheck` verifies the caller on every call instead: a caller is allowed when one of its packages is signed with the host's own key (`checkSignatures`) or with a certificate listed in `res/values/allowed_signers.xml` (SHA-256 hex, checked with `hasSigningCertificate`). The list holds the shared release key and the maintainer's debug key, so a debug client can use a release host and the other way round.
 
-A custom `signature` permission was dropped on purpose: Android grants a permission only if its defining app is installed first, so a client installed before the host would never get it. Opening the host to third-party apps later means adding a user-approval path to the allowlist.
+Any other caller goes through `Approvals` (stored as JSON in `host_settings`): a decision is kept per package **and** signing-certificate digest (SHA-256 of all signers), so an app re-signed with another key asks again. `CallerCheck.decide` returns ALLOW, DENY, ASK (unknown app or new key: record a `PENDING` request and post the notification *"<app> wants to use OndolSaem"*, which opens the Apps tab) or WAIT (already pending). Refusals are thrown as `SecurityException` whose message carries `Errors.NOT_APPROVED` in the `HostErrors` format: SDK 0.2.0 turns it into `HostUnavailableException.Reason.NOT_APPROVED`, older clients still see `NOT_ALLOWED`, so no new API level was needed. The Apps tab lists these apps under *Other apps* (signing-key fingerprint, last request) with Allow / Deny / Revoke / Forget; clients can open it with `OndolSaem.approvalIntent()` (action `ACTION_APPROVE`, own task). Allowed callers are cached per uid; any decision clears the cache, so a revoke applies to the next call.
+
+A custom `signature` permission was dropped on purpose: Android grants a permission only if its defining app is installed first, so a client installed before the host would never get it. Third-party apps therefore use the approval path above instead of a permission.
 
 ## Dashboard
 

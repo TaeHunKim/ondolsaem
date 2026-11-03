@@ -22,6 +22,7 @@ class HostSettings(private val context: Context) {
     private val hfTokenKey = stringPreferencesKey("hf_token")
     private val chatContextKey = intPreferencesKey("chat_context_tokens")
     private val clientsKey = stringSetPreferencesKey("clients")
+    private val approvalsKey = stringPreferencesKey("approvals")
     private fun clientCategoriesKey(pkg: String) = stringSetPreferencesKey("client_categories_$pkg")
 
     fun activeModelId(category: String): Flow<String> = store.data.map {
@@ -36,6 +37,10 @@ class HostSettings(private val context: Context) {
     }
 
     suspend fun setResidency(category: String, r: Residency) { store.edit { it[residencyKey(category)] = r.name } }
+
+    /** Third-party app decisions (service/Approvals.kt), as JSON. */
+    val approvalsJson: Flow<String> = store.data.map { it[approvalsKey].orEmpty() }
+    suspend fun setApprovalsJson(json: String) { store.edit { it[approvalsKey] = json } }
 
     val hfToken: Flow<String> = store.data.map { it[hfTokenKey].orEmpty() }
     suspend fun setHfToken(token: String) { store.edit { it[hfTokenKey] = token.trim() } }
