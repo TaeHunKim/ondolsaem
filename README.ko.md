@@ -8,7 +8,7 @@
 - **ONDOL**: On-device Neural Deployment & Orchestration Layer
 - **SAEM**: Shared AI Engine Manager
 
-상태: 초기 개발 단계(0.6.0). 첫 클라이언트는 온디바이스 시맨틱 검색 앱 [눈소리 / Nunsori](https://github.com/taehunkim/nunsori)입니다.
+상태: 초기 개발 단계(0.6.0). 첫 클라이언트는 온디바이스 시맨틱 검색 앱 [눈소리 / Nunsori](https://github.com/sonanjip/nunsori)입니다.
 
 ## 기능
 
@@ -23,7 +23,7 @@
 | 앱 | 온돌샘을 쓰는 앱과 카테고리, 요청 통계. 내 앱(같은 서명 키 또는 허용한 키)은 바로 연결, 다른 앱은 먼저 요청하고 여기서 허용·거부·취소 |
 | 판단 | *판단* 카테고리: 여러 언어(한국어 포함) 자연어 추론 모델이 글이 어떤 주제나 조건에 맞는지 확률과 함께 약 40ms에 답한다. 앱이 노트 태그 달기와 예약 작업의 새 파일 확인에 쓴다. fp32 원본을 받아 폰에서 325MB int8 모델로 바꾸거나, 4비트 완성본을 받는다 |
 | NPU | 온돌샘이 폰의 칩을 확인하고 그 칩용 모델 NPU 빌드를 Hugging Face에서 찾는다(현재 Pixel 10/11, Snapdragon 8 Gen 2~8 Elite Gen 5, Dimensity 9400/9500). 찾은 빌드는 모델 아래에서 받으면 NPU에서 돌고, 없는 기종은 "NPU 빌드 없음"으로 표시하며, 실패하면 GPU, 그다음 CPU로 돈다. Snapdragon 폰은 Qualcomm NPU 런타임(약 25MB)도 받는다. 설정 › NPU › "NPU 점검"은 폰에서 CPU, GPU, NPU를 비교해 공유할 수 있는 보고서를 만든다 |
-| 클라이언트 SDK | JitPack의 `com.github.TaeHunKim:ondolsaem:<태그>`, [docs/architecture.md](docs/architecture.md) 참고 |
+| 클라이언트 SDK | JitPack의 `com.github.sonanjip:ondolsaem:<태그>`, [docs/architecture.md](docs/architecture.md) 참고 |
 
 ## 문서
 

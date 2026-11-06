@@ -43,4 +43,4 @@ redistributing.
 | mDeBERTa-v3-base xnli multilingual NLI (decision; fp32 converted on the phone to int8, or q4) | 1.1 GB download → 325 MB / 845 MB | Hugging Face `onnx-community/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7-ONNX` (from `MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7`) | MIT (model card) |
 
 The EmbeddingGemma model cards say Apache-2.0 but also link to the Gemma terms of use; the catalog in
-[`ModelCatalog.kt`](app/src/main/java/io/github/taehunkim/ondolsaem/catalog/ModelCatalog.kt) follows the card.
+[`ModelCatalog.kt`](app/src/main/java/io/github/sonanjip/ondolsaem/catalog/ModelCatalog.kt) follows the card.

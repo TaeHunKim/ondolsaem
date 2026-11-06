@@ -1,4 +1,4 @@
-# JitPack builds only the client SDK, served as com.github.TaeHunKim:ondolsaem:<git tag> (checked with sdk-v0.2.0)
+# JitPack builds only the client SDK, served as com.github.sonanjip:ondolsaem:<git tag> (checked with sdk-v0.2.0)
 jdk:
   - openjdk21
 install:

@@ -1,6 +1,6 @@
 # Architecture
 
-OndolSaem is a model host: it owns model files, loads models, keeps them in memory by policy and runs inference for client apps over a bound service. Clients never load models themselves. Code map (`app/src/main/java/io/github/taehunkim/ondolsaem/`): `catalog/` (categories and curated models), `download/` (resumable downloads in WorkManager), `engine/` (LiteRT-LM embedding and chat, ML Kit OCR, sherpa-onnx speech), `runtime/` (`ModelRuntime`, `LeasedResource`, `PriorityGate`, `KeepAliveService`), `service/` (`HostService`, `CallerCheck`, `ClientRegistry`, `ModelChangeNotifier`), `settings/`, `ui/`. The contract and client live in `sdk/`.
+OndolSaem is a model host: it owns model files, loads models, keeps them in memory by policy and runs inference for client apps over a bound service. Clients never load models themselves. Code map (`app/src/main/java/io/github/sonanjip/ondolsaem/`): `catalog/` (categories and curated models), `download/` (resumable downloads in WorkManager), `engine/` (LiteRT-LM embedding and chat, ML Kit OCR, sherpa-onnx speech), `runtime/` (`ModelRuntime`, `LeasedResource`, `PriorityGate`, `KeepAliveService`), `service/` (`HostService`, `CallerCheck`, `ClientRegistry`, `ModelChangeNotifier`), `settings/`, `ui/`. The contract and client live in `sdk/`.
 
 ## Service contract (`:sdk`)
 

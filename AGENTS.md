@@ -1,8 +1,8 @@
 # OndolSaem / 온돌샘 (on-device model host, Android)
-다른 앱(첫 클라이언트: 눈소리 `taehunkim/nunsori`)에 온디바이스 AI 모델을 바인드 AIDL 서비스로 제공하는 앱. applicationId·패키지 `io.github.taehunkim.ondolsaem`, Kotlin + Compose, minSdk 29 / target 36 / compile 37.
+다른 앱(첫 클라이언트: 눈소리 `sonanjip/nunsori`)에 온디바이스 AI 모델을 바인드 AIDL 서비스로 제공하는 앱. applicationId·패키지 `io.github.taehunkim.ondolsaem`, Kotlin + Compose, minSdk 29 / target 36 / compile 37.
 
 ## 모듈
-- `:sdk`: 클라이언트 계약(AIDL, parcelable, `OndolSaem` 상수)과 클라이언트 라이브러리. JitPack으로 배포(`com.github.TaeHunKim:ondolsaem:<태그>`, 태그는 `sdk-vX.Y.Z`). 버전은 `sdk/build.gradle.kts`의 `version`.
+- `:sdk`: 클라이언트 계약(AIDL, parcelable, `OndolSaem` 상수)과 클라이언트 라이브러리. JitPack으로 배포(`com.github.sonanjip:ondolsaem:<태그>`, 태그는 `sdk-vX.Y.Z`). 버전은 `sdk/build.gradle.kts`의 `version`.
 - `:app`: 호스트 앱. 버전은 `app/build.gradle.kts`의 `appVersionName` 한 곳.
 
 ## 계약 규칙 (sdk)

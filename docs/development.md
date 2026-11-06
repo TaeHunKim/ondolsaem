@@ -28,7 +28,7 @@ To let a client built on another machine (another debug key) connect, add that k
 
 ## Working with a client app
 
-Clients depend on `com.github.TaeHunKim:ondolsaem:<tag>` (see below). To change the SDK and a client together, check this repository out next to the client and point the client at it. Nunsori, for example, reads `ondolsaem.dir=../ondolsaem` from its `local.properties`, adds this build as a Gradle composite build and substitutes `com.github.TaeHunKim:ondolsaem` with `project(":sdk")` (`dependencySubstitution` in its `settings.gradle.kts`), because the JitPack coordinates differ from the SDK's own `group`/name.
+Clients depend on `com.github.sonanjip:ondolsaem:<tag>` (see below). To change the SDK and a client together, check this repository out next to the client and point the client at it. Nunsori, for example, reads `ondolsaem.dir=../ondolsaem` from its `local.properties`, adds this build as a Gradle composite build and substitutes `com.github.sonanjip:ondolsaem` with `project(":sdk")` (`dependencySubstitution` in its `settings.gradle.kts`), because the JitPack coordinates differ from the SDK's own `group`/name.
 
 ## Measuring on a device
 
@@ -60,9 +60,9 @@ JitPack builds the SDK from a git tag (`jitpack.yml` runs `:sdk:publishReleasePu
 1. Bump `version` in `sdk/build.gradle.kts`.
 2. Tag and push: `git tag -a sdk-vX.Y.Z -m "OndolSaem SDK X.Y.Z"`, `git push origin sdk-vX.Y.Z`. Clients use the tag name as the version.
 3. Local check without JitPack: `./gradlew :sdk:publishReleasePublicationToMavenLocal` (writes to `~/.m2`).
-4. Open `https://jitpack.io/com/github/TaeHunKim/ondolsaem/<tag>/build.log` to start the build and read its log (status: `https://jitpack.io/api/builds/com.github.TaeHunKim/ondolsaem/<tag>`).
+4. Open `https://jitpack.io/com/github/sonanjip/ondolsaem/<tag>/build.log` to start the build and read its log (status: `https://jitpack.io/api/builds/com.github.sonanjip/ondolsaem/<tag>`).
 
-JitPack finds the one artifact the build publishes (`com.github.taehunkim.ondolsaem:sdk`) and serves it as `com.github.TaeHunKim:ondolsaem:<tag>` (`.aar`, `.pom`, `.module`). Checked with `sdk-v0.2.0`: JitPack's `openjdk21` builds it (Gradle 9.8.2, AGP 9.5; a JDK 25 is not needed), and Nunsori builds from that artifact. Since `sdk-v0.3.0` the `:app` module declares an NDK (JNI bridge); JitPack installs NDK 28.2 on its own while configuring the build (about a minute more) and still builds only `:sdk`; Nunsori 0.9.0 builds from `sdk-v0.3.0`.
+JitPack finds the one artifact the build publishes (`com.github.taehunkim.ondolsaem:sdk`) and serves it as `com.github.sonanjip:ondolsaem:<tag>` (`.aar`, `.pom`, `.module`). Checked with `sdk-v0.2.0`: JitPack's `openjdk21` builds it (Gradle 9.8.2, AGP 9.5; a JDK 25 is not needed), and Nunsori builds from that artifact. Since `sdk-v0.3.0` the `:app` module declares an NDK (JNI bridge); JitPack installs NDK 28.2 on its own while configuring the build (about a minute more) and still builds only `:sdk`; Nunsori 0.9.0 builds from `sdk-v0.3.0`.
 
 ## Release build
 
