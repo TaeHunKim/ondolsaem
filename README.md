@@ -8,6 +8,12 @@ The name joins *ondol* (온돌, the floor heating that warms a whole house from 
 - **ONDOL**: On-device Neural Deployment & Orchestration Layer
 - **SAEM**: Shared AI Engine Manager
 
+<p>
+<img src="docs/images/demo.gif" width="260" alt="OndolSaem loads a model on request, lists the downloaded models and shows which apps use them">
+</p>
+
+*One model in memory for every app: load on demand, the model catalog, and the connected apps.*
+
 Status: early development (0.6.0). The first client is [Nunsori / 눈소리](https://github.com/sonanjip/nunsori), an on-device semantic search app.
 
 ## Features

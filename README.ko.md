@@ -8,6 +8,12 @@
 - **ONDOL**: On-device Neural Deployment & Orchestration Layer
 - **SAEM**: Shared AI Engine Manager
 
+<p>
+<img src="docs/images/demo.gif" width="260" alt="온돌샘이 모델을 불러오고, 받은 모델 목록과 모델을 쓰는 앱을 보여 줌">
+</p>
+
+*모든 앱이 메모리에 올린 모델 하나를 함께 씁니다: 필요할 때 불러오기, 모델 목록, 연결된 앱.*
+
 상태: 초기 개발 단계(0.6.0). 첫 클라이언트는 온디바이스 시맨틱 검색 앱 [눈소리 / Nunsori](https://github.com/sonanjip/nunsori)입니다.
 
 ## 기능
