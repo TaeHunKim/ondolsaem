@@ -45,7 +45,7 @@ The two clients run in the test process, so they share one app identity; the per
 
 ### NPU builds
 
-`scripts/npu-check.sh [-s SERIAL]` runs `NpuParityTest` on a connected phone the same way (the app stays installed). Download an embedding model and its NPU build in the app first (Models › the model › "Download NPU build"). For each embedding model with an NPU build it checks that the build loads on the NPU and that its vectors match the CPU build (cosine ≥ 0.98 for documents, queries and an image), and logs the cosine and the NPU and GPU time per input. It writes `build/npu/<device>-<date>.txt`. Without an NPU build (the emulator, other chips) the tests are skipped. `NpuTest` (unit) covers the chip names and the catalog's NPU entries.
+`scripts/npu-check.sh [-s SERIAL]` runs `NpuParityTest` on a connected phone the same way (the app stays installed). Download an embedding model and its NPU build in the app first (Models › the model › "Download NPU build"). For each embedding model with an NPU build it checks that the build loads on the NPU and that its vectors match the CPU build (cosine ≥ 0.98 for documents, queries and an image), and logs the cosine and the NPU and GPU time per input. It writes `build/npu/<device>-<date>.txt`. Without an NPU build (the emulator, other chips) the tests are skipped. `NpuTest` (unit) covers chip names, file-name matching and the search result's JSON; `NpuDiscoveryTest` (androidTest, needs the network) searches the real repositories for SM8750, Tensor G5 and SM8450. Unit tests use the real `org.json` (`testImplementation`), since `android.jar` only has stubs.
 
 ## Publishing the SDK
 

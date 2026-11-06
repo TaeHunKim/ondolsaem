@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -46,7 +47,19 @@ class HostViewModel(app: Application) : AndroidViewModel(app) {
     /** This phone's NPU chip, or null when no NPU builds apply. */
     val npuDevice = c.modelManager.npuDevice
     val useNpu: StateFlow<Boolean> = c.settings.useNpu.state(true)
-    fun setUseNpu(on: Boolean) { viewModelScope.launch { c.setUseNpu(on) } }
+    fun setUseNpu(on: Boolean) {
+        viewModelScope.launch {
+            c.setUseNpu(on)
+            if (on) c.modelManager.checkNpuBuilds()
+        }
+    }
+    val npuCheck = c.modelManager.npuCheck
+    fun recheckNpu() { viewModelScope.launch { c.modelManager.checkNpuBuilds(force = true) } }
+
+    init {
+        // the user opened the app: look up this chip's NPU builds (at most weekly) while NPU use is on
+        viewModelScope.launch { if (c.settings.useNpu.first()) c.modelManager.checkNpuBuilds() }
+    }
     fun npuSize(id: String): Long = ModelCatalog.byId(id)?.let(c.modelManager::npuDownloadBytes) ?: 0
     fun downloadNpu(id: String, wifiOnly: Boolean) = c.modelManager.startNpuDownload(id, wifiOnly)
     fun cancelNpu(id: String) = c.modelManager.cancelNpuDownload(id)

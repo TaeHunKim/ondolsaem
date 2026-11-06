@@ -204,7 +204,7 @@ fun ModelsScreen(vm: HostViewModel) {
                     )
                     val npuState = npuStates[spec.id]
                     val soc = vm.npuDevice?.soc
-                    if (npuState != null && soc != null && states[spec.id] is ModelState.Installed) NpuRow(
+                    if (npuState != null && soc != null && useNpu && states[spec.id] is ModelState.Installed) NpuRow(
                         soc, vm.npuSize(spec.id), npuState, useNpu,
                         onDownload = { if (vm.isMetered()) meteredNpu = spec else vm.downloadNpu(spec.id, wifiOnly = false) },
                         onCancel = { vm.cancelNpu(spec.id) },
@@ -328,6 +328,10 @@ private fun ModelRow(
 @Composable
 private fun NpuRow(soc: String, size: Long, state: ModelState, useNpu: Boolean, onDownload: () -> Unit, onCancel: () -> Unit, onDelete: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(start = 48.dp).testTag("npu_row")) {
+        if (state == ModelState.Unavailable) {
+            Text(stringResource(R.string.npu_none_for_chip, soc), style = MaterialTheme.typography.bodySmall)
+            return@Column
+        }
         Text(stringResource(R.string.npu_build, soc), style = MaterialTheme.typography.labelLarge)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             when (state) {
@@ -484,11 +488,33 @@ private fun NpuSettings(vm: HostViewModel) {
             return@SectionCard
         }
         KeyValue(stringResource(R.string.npu_chip), device.soc)
+        if (!device.usable) {
+            Text(stringResource(R.string.npu_unknown_qualcomm), style = MaterialTheme.typography.bodySmall)
+            return@SectionCard
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.npu_use), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
             androidx.compose.material3.Switch(checked = useNpu, onCheckedChange = vm::setUseNpu, modifier = Modifier.testTag("npu_switch"))
         }
         Text(stringResource(R.string.npu_use_desc), style = MaterialTheme.typography.bodySmall)
+        val check by vm.npuCheck.collectAsState()
+        val found = check.result?.builds?.keys.orEmpty().mapNotNull { vm.spec(it)?.displayName }
+        KeyValue(
+            stringResource(R.string.npu_builds),
+            when {
+                check.running -> stringResource(R.string.npu_checking)
+                check.result == null -> stringResource(R.string.npu_not_checked)
+                else -> DateUtils.getRelativeTimeSpanString(check.result!!.checkedAt).toString()
+            },
+        )
+        if (check.result != null) Text(
+            if (found.isEmpty()) stringResource(R.string.npu_found_none, device.soc) else stringResource(R.string.npu_found, device.soc, found.joinToString()),
+            style = MaterialTheme.typography.bodySmall,
+        )
+        if (check.failed != null) Text(stringResource(R.string.npu_check_failed), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        OutlinedButton(onClick = vm::recheckNpu, enabled = useNpu && !check.running, modifier = Modifier.testTag("npu_recheck")) {
+            Text(stringResource(R.string.npu_recheck))
+        }
         if (device.vendor == io.github.taehunkim.ondolsaem.engine.NpuVendor.QUALCOMM) {
             val bytes = remember(npuStates) { vm.npuRuntimeBytes() }
             KeyValue(

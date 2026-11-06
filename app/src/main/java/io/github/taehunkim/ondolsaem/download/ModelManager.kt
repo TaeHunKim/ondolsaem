@@ -10,6 +10,7 @@ import androidx.work.workDataOf
 import io.github.taehunkim.ondolsaem.catalog.ModelCatalog
 import io.github.taehunkim.ondolsaem.catalog.ModelSource
 import io.github.taehunkim.ondolsaem.catalog.ModelSpec
+import io.github.taehunkim.ondolsaem.catalog.NpuDiscovery
 import io.github.taehunkim.ondolsaem.catalog.NpuFile
 import io.github.taehunkim.ondolsaem.engine.NliW8Converter
 import io.github.taehunkim.ondolsaem.engine.Npu
@@ -57,10 +58,46 @@ class ModelManager(
 
     val npuRuntime = NpuRuntime(context, downloader)
 
+    /** The last search for NPU builds ([checkNpuBuilds]), [running] while one is under way. */
+    data class NpuCheck(val running: Boolean = false, val result: NpuDiscovery.Result? = null, val failed: DownloadException.Kind? = null)
+
+    private val npuCacheFile = File(context.filesDir, "npu-builds.json")
+    private val _npuCheck = MutableStateFlow(
+        NpuCheck(result = runCatching { NpuDiscovery.load(npuCacheFile) }.getOrNull()?.takeIf { it.soc == npuDevice?.soc }),
+    )
+    val npuCheck: StateFlow<NpuCheck> = _npuCheck.asStateFlow()
+
     init { refresh() }
 
-    /** The NPU build of [spec] for this phone, if one is published. */
-    fun npuSpec(spec: ModelSpec): NpuFile? = npuDevice?.let { spec.npu[it.soc] }
+    /** The NPU build of [spec] for this phone, if the last search found one. */
+    fun npuSpec(spec: ModelSpec): NpuFile? = _npuCheck.value.result?.builds?.get(spec.id)
+
+    /**
+     * Looks up this phone's NPU builds in the models' Hugging Face repositories (at most once a week unless [force]):
+     * found builds can be downloaded, the other models show "no NPU build for this chip". Keeps the last result when
+     * offline.
+     */
+    suspend fun checkNpuBuilds(force: Boolean = false, discovery: NpuDiscovery = NpuDiscovery(), now: Long = System.currentTimeMillis()) {
+        val device = npuDevice?.takeIf { it.usable } ?: return
+        val last = _npuCheck.value
+        if (last.running) return
+        if (!force && last.result != null && now - last.result.checkedAt < RECHECK_MS && last.result.checked.containsAll(npuCandidates())) return
+        _npuCheck.value = last.copy(running = true, failed = null)
+        try {
+            val r = discovery.check(ModelCatalog.all, device, settings.hfToken.first(), now)
+            withContext(Dispatchers.IO) { npuCacheFile.writeText(NpuDiscovery.toJson(r)) }
+            _npuCheck.value = NpuCheck(result = r)
+        } catch (e: CancellationException) {
+            _npuCheck.value = last
+            throw e
+        } catch (e: Exception) {
+            _npuCheck.value = last.copy(running = false, failed = (e as? DownloadException)?.kind ?: DownloadException.Kind.HTTP)
+        }
+        refresh()
+    }
+
+    /** Models that may have NPU builds: LiteRT-LM files on Hugging Face. */
+    private fun npuCandidates(): List<String> = ModelCatalog.all.filter { (it.source as? ModelSource.HuggingFace)?.fileName?.endsWith(".litertlm") == true }.map { it.id }
 
     fun npuFile(spec: ModelSpec): File? = npuSpec(spec)?.let { File(dir(spec), "npu/${it.fileName}") }
 
@@ -103,10 +140,12 @@ class ModelManager(
     }
 
     fun refresh() {
+        val checked = _npuCheck.value.result?.checked.orEmpty()
         _npuStates.update { old ->
-            ModelCatalog.all.filter { npuSpec(it) != null }.associate { spec ->
+            ModelCatalog.all.filter { it.id in checked }.associate { spec ->
                 val o = old[spec.id]
                 spec.id to when {
+                    npuSpec(spec) == null -> ModelState.Unavailable // none published for this chip
                     npuTarget(spec) != null -> ModelState.Installed
                     o is ModelState.Downloading || o is ModelState.WaitingForWifi || o is ModelState.Verifying || o is ModelState.Failed -> o
                     else -> ModelState.NotInstalled
@@ -303,5 +342,8 @@ class ModelManager(
     private fun workName(id: String) = "model-download-$id"
     private fun npuWorkName(id: String) = "model-download-npu-$id"
 
-    private companion object { const val ARCHIVE_NAME = "download.tar.bz2" }
+    private companion object {
+        const val ARCHIVE_NAME = "download.tar.bz2"
+        const val RECHECK_MS = 7L * 24 * 3600 * 1000
+    }
 }
