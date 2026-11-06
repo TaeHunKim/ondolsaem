@@ -10,7 +10,7 @@ It uses the components below. Versions come from [`gradle/libs.versions.toml`](g
 | AndroidX (Compose BoM, Material 3, Activity, Lifecycle, WorkManager, DataStore, AppCompat) | see catalog (Compose BoM 2026.09.00, WorkManager 2.12.0) | Apache-2.0 |
 | Kotlin, kotlinx.coroutines | 2.4.21 / 1.11.0 | Apache-2.0 |
 | OkHttp | 5.5.1 | Apache-2.0 |
-| LiteRT-LM (`litertlm-android`) | 0.19.0 | Apache-2.0 |
+| LiteRT-LM (`litertlm-android`) | 0.18.1 | Apache-2.0 |
 | LiteRT NPU runtimes (`litert-npu-runtime-google-tensor`, `-qualcomm`, `-mediatek`; dispatch libraries only) | 2.3.2 | Apache-2.0 |
 | sherpa-onnx (AAR, downloaded by `scripts/fetch-sherpa-onnx.sh`, not committed) | 2.0.1 | Apache-2.0 |
 | Apache Commons Compress | 1.28.0 | Apache-2.0 |
