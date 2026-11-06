@@ -10,6 +10,7 @@ import androidx.work.workDataOf
 import io.github.taehunkim.ondolsaem.catalog.ModelCatalog
 import io.github.taehunkim.ondolsaem.catalog.ModelSource
 import io.github.taehunkim.ondolsaem.catalog.ModelSpec
+import io.github.taehunkim.ondolsaem.engine.NliW8Converter
 import io.github.taehunkim.ondolsaem.settings.HostSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +29,8 @@ sealed interface ModelState {
     data class Downloading(val downloaded: Long, val total: Long) : ModelState
     /** Downloaded; checking the SHA-256 (and unpacking an archive). */
     data object Verifying : ModelState
+    /** Downloaded and verified; being converted on the phone ([ModelSource.HuggingFace.convert]). */
+    data class Converting(val done: Long, val total: Long) : ModelState
     data object Installed : ModelState
     data class Failed(val kind: DownloadException.Kind?, val message: String?) : ModelState
     data object Unavailable : ModelState
@@ -49,12 +52,22 @@ class ModelManager(
         else -> null
     }
 
+    /** The file the runtime opens: the converted model when the source is converted, else [file]. */
+    fun modelFile(spec: ModelSpec): File? = when (val s = spec.source) {
+        is ModelSource.HuggingFace -> if (s.convert != null) File(dir(spec), "${s.convert}/model.onnx") else file(spec)
+        else -> null
+    }
+
+    /** An extra file of a Hugging Face model ([ModelSource.HuggingFace.extras]), stored by its name. */
+    fun extra(spec: ModelSpec, path: String): File = File(dir(spec), path.substringAfterLast('/'))
+
     /** Folder holding the unpacked files of an archive model. */
     fun dir(spec: ModelSpec): File = File(modelsDir, spec.id)
 
     fun isReady(spec: ModelSpec): Boolean = when (val s = spec.source) {
         is ModelSource.Bundled -> true
-        is ModelSource.HuggingFace -> file(spec)?.exists() == true
+        is ModelSource.HuggingFace -> s.extras.keys.all { extra(spec, it).exists() } &&
+            (if (s.convert != null) File(dir(spec), "${s.convert}/weights.bin").exists() && modelFile(spec)!!.exists() else file(spec)?.exists() == true)
         is ModelSource.Archive -> s.files.values.all { File(dir(spec), it).exists() }
         is ModelSource.Planned -> false
     }
@@ -64,7 +77,8 @@ class ModelManager(
             ModelCatalog.all.associate { spec ->
                 spec.id to when {
                     spec.source is ModelSource.Planned -> ModelState.Unavailable
-                    (old[spec.id] is ModelState.Downloading || old[spec.id] is ModelState.WaitingForWifi || old[spec.id] is ModelState.Verifying) &&
+                    (old[spec.id] is ModelState.Downloading || old[spec.id] is ModelState.WaitingForWifi || old[spec.id] is ModelState.Verifying ||
+                        old[spec.id] is ModelState.Converting) &&
                         !isReady(spec) -> old[spec.id]!!
                     isReady(spec) -> ModelState.Installed
                     else -> old[spec.id]?.takeIf { it is ModelState.Failed } ?: ModelState.NotInstalled
@@ -102,7 +116,10 @@ class ModelManager(
             f.delete()
             File(f.path + ".part").delete()
         }
-        if (spec.source is ModelSource.Archive) dir(spec).deleteRecursively()
+        val hf = spec.source as? ModelSource.HuggingFace
+        if (spec.source is ModelSource.Archive || hf?.extras?.isNotEmpty() == true || hf?.convert != null) {
+            dir(spec).deleteRecursively()
+        }
         set(id, ModelState.NotInstalled)
     }
 
@@ -120,10 +137,27 @@ class ModelManager(
                 set(spec.id, ModelState.Downloading(d, t))
                 onProgress(d, t)
             }
+            val src0 = spec.source
+            if (src0 is ModelSource.HuggingFace) {
+                // small companion files (tokenizer, config) after the main file; verified at once
+                for ((path, sha) in src0.extras) {
+                    val f = extra(spec, path)
+                    if (f.exists()) continue
+                    downloader.download(src0.url(path), f, token) { _, _ -> }
+                    withContext(Dispatchers.IO) { Checksums.verify(f, sha) }
+                }
+            }
             set(spec.id, ModelState.Verifying)
             withContext(Dispatchers.IO) {
                 when (val src = spec.source) {
-                    is ModelSource.HuggingFace -> Checksums.verify(target, src.sha256)
+                    is ModelSource.HuggingFace -> {
+                        Checksums.verify(target, src.sha256)
+                        src.convert?.let { conversion ->
+                            convert(conversion, spec, target)
+                            target.delete() // the converted model replaces the download
+                            target.parentFile?.takeIf { it != dir(spec) }?.delete() // its folder, if now empty
+                        }
+                    }
                     is ModelSource.Archive -> {
                         ArchiveExtractor.extract(target, dir(spec), src.files)
                         target.delete()
@@ -148,6 +182,19 @@ class ModelManager(
         } catch (e: Exception) {
             set(spec.id, ModelState.Failed(null, e.message))
             throw e
+        }
+    }
+
+    /** Converts [source] into `dir/<conversion>/` (template from the APK assets, weights computed here). */
+    private fun convert(conversion: String, spec: ModelSpec, source: File) {
+        val out = File(dir(spec), conversion).apply { mkdirs() }
+        val recipe = context.assets.open("$conversion/recipe.tsv").bufferedReader().use { it.readText() }
+        context.assets.open("$conversion/model.onnx").use { i -> File(out, "model.onnx").outputStream().use { i.copyTo(it) } }
+        when (conversion) {
+            ModelSource.Conversions.NLI_W8 -> NliW8Converter.convert(source, NliW8Converter.parseRecipe(recipe), File(out, "weights.bin")) { d, t ->
+                set(spec.id, ModelState.Converting(d, t))
+            }
+            else -> error("unknown conversion $conversion")
         }
     }
 

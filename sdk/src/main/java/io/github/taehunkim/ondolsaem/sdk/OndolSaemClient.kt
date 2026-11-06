@@ -14,6 +14,7 @@ import io.github.taehunkim.ondolsaem.HostInfo
 import io.github.taehunkim.ondolsaem.EmbeddingResult
 import io.github.taehunkim.ondolsaem.FaceResult
 import io.github.taehunkim.ondolsaem.IFaceService
+import io.github.taehunkim.ondolsaem.IDecisionService
 import io.github.taehunkim.ondolsaem.IAsrService
 import io.github.taehunkim.ondolsaem.IChatCallback
 import io.github.taehunkim.ondolsaem.IChatService
@@ -190,6 +191,18 @@ class OndolSaemClient(
         call(minApi = OndolSaem.Api.V2) { h ->
             IFaceService.Stub.asInterface(h.getCapability(OndolSaem.Categories.FACE) ?: throw missing(OndolSaem.Categories.FACE))
                 .detectFaces(Pfds.ofBytes(image), priority).toList()
+        }
+
+    // ---- decisions (API 3) -------------------------------------------------------------------------------------
+
+    /**
+     * For each of [hypotheses], the probability (0..1) that it follows from [premise]. Build hypotheses with
+     * [Decisions.hypothesis]. Fails with [HostUnavailableException.Reason.HOST_TOO_OLD] on a host below API 3.
+     */
+    suspend fun entail(premise: String, hypotheses: List<String>, priority: Int = OndolSaem.PRIORITY_BACKGROUND): FloatArray =
+        call(minApi = OndolSaem.Api.V3) { h ->
+            IDecisionService.Stub.asInterface(h.getCapability(OndolSaem.Categories.DECISION) ?: throw missing(OndolSaem.Categories.DECISION))
+                .entail(premise, hypotheses.toTypedArray(), priority)
         }
 
     // ---- speech ------------------------------------------------------------------------------------------------

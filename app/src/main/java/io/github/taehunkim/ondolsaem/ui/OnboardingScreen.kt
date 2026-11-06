@@ -131,7 +131,7 @@ private fun Models(vm: HostViewModel) {
                     spec.displayName + " · " + when {
                         bundled -> stringResource(R.string.onb_models_builtin)
                         st is ModelState.Installed -> stringResource(R.string.onb_models_installed)
-                        st is ModelState.Downloading || st is ModelState.WaitingForWifi || st is ModelState.Verifying -> stringResource(R.string.onb_models_downloading)
+                        st is ModelState.Downloading || st is ModelState.WaitingForWifi || st is ModelState.Verifying || st is ModelState.Converting -> stringResource(R.string.onb_models_downloading)
                         else -> spec.sizeBytes?.let(::formatBytes) ?: "?"
                     },
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -141,7 +141,8 @@ private fun Models(vm: HostViewModel) {
     }
     val toGet = defaults.filter { (cat, spec) ->
         cat.id in chosen && spec.source !is ModelSource.Bundled && states[spec.id] !is ModelState.Installed &&
-            states[spec.id] !is ModelState.Downloading && states[spec.id] !is ModelState.WaitingForWifi && states[spec.id] !is ModelState.Verifying
+            states[spec.id] !is ModelState.Downloading && states[spec.id] !is ModelState.WaitingForWifi && states[spec.id] !is ModelState.Verifying &&
+                states[spec.id] !is ModelState.Converting
     }.map { it.second }
     val total = toGet.sumOf { it.sizeBytes ?: 0L }
     fun start(wifiOnly: Boolean) { toGet.forEach { vm.download(it.id, wifiOnly) } }

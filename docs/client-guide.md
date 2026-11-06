@@ -1,6 +1,6 @@
 # Using OndolSaem from an app
 
-1. Depend on the SDK: `implementation("com.github.TaeHunKim:ondolsaem:sdk-v0.2.0")` (the version is the git tag) with `maven("https://jitpack.io")` in the repositories (or a composite build of a local checkout, see [development.md](development.md#working-with-a-client-app)). The SDK's manifest adds the `<queries>` entry for the host and the model-change receiver.
+1. Depend on the SDK: `implementation("com.github.TaeHunKim:ondolsaem:sdk-v0.4.0")` (the version is the git tag) with `maven("https://jitpack.io")` in the repositories (or a composite build of a local checkout, see [development.md](development.md#working-with-a-client-app)). The SDK's manifest adds the `<queries>` entry for the host and the model-change receiver.
    - Apps not signed with one of the host's keys must be approved by the user first. Their first call fails with `NOT_APPROVED` and OndolSaem shows a request; send the user there with `startActivity(OndolSaem.approvalIntent())` and retry after they return. A denied app gets the same reason. Clients built with SDK 0.1.0 see `NOT_ALLOWED` instead.
 2. Sign the app with the same key as OndolSaem, or add its certificate digest to the host's `allowed_signers.xml`.
 3. Create one `OndolSaemClient(context)` per process. It binds on first use and unbinds when idle.
@@ -16,7 +16,13 @@ client.chat("conv-1", system, history, "question", tools = listOf(ToolSpec(...))
 if (client.supports(OndolSaem.Api.V2)) {
     val faces = client.detectFaces(jpeg)                          // FaceResult(left, top, right, bottom, score, vector, modelId, modelVersion)
 }
+if (client.supports(OndolSaem.Api.V3)) {
+    val p = client.entail(noteText, listOf(Decisions.hypothesis("여행"), Decisions.hypothesis("요리", "레시피, 음식")))
+    val travel = Decisions.verdict(p[0])                          // YES (>= 0.70), NO (<= 0.30) or UNSURE
+}
 ```
+
+- Decisions (API 3): one call per text with all its questions (up to 64). Store the decision model id (`activeModel(DECISION).id`) next to derived answers such as tags; a new model may answer differently. Text only: images need their OCR text or another route.
 
 - Faces (API 2): compare `vector`s with the cosine similarity (0.363 or more: likely the same person). Face vectors are biometric data; keep them on the device and let the user delete them.
 

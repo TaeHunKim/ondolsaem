@@ -2,13 +2,13 @@
 
 **English** | [한국어](README.ko.md)
 
-OndolSaem is an Android app that hosts on-device AI models for other apps. It downloads curated models per category (text/image/audio embedding, chat LLM, OCR, speech recognition, faces), keeps them in memory according to a per-category policy, and serves them to client apps over a bound AIDL service. A model is loaded once for all apps instead of once per app.
+OndolSaem is an Android app that hosts on-device AI models for other apps. It downloads curated models per category (text/image/audio embedding, chat LLM, OCR, speech recognition, faces, yes/no decisions), keeps them in memory according to a per-category policy, and serves them to client apps over a bound AIDL service. A model is loaded once for all apps instead of once per app.
 
 The name joins *ondol* (온돌, the floor heating that warms a whole house from underneath) and *saem* (샘, a spring everyone draws water from). As acronyms:
 - **ONDOL**: On-device Neural Deployment & Orchestration Layer
 - **SAEM**: Shared AI Engine Manager
 
-Status: early development (0.2.0). The first client is [Nunsori / 눈소리](https://github.com/taehunkim/nunsori), an on-device semantic search app.
+Status: early development (0.5.0). The first client is [Nunsori / 눈소리](https://github.com/taehunkim/nunsori), an on-device semantic search app.
 
 ## Features
 
@@ -21,6 +21,7 @@ Status: early development (0.2.0). The first client is [Nunsori / 눈소리](htt
 | First run | A short guide: what OndolSaem is, connected apps, recommended models to download (740M embedding with audio by default), notifications |
 | Dashboard | Device memory, the host's memory use, loaded models and which apps hold them |
 | Apps | Apps that use the host, their categories and request statistics; own apps (same signing key or an allowed key) connect directly; other apps ask first and are allowed, denied or revoked here |
+| Decisions | Category *Decisions*: a multilingual (Korean too) natural language inference model answers whether a text matches a topic or condition, with a probability, in about 40 ms. Apps use it to tag notes and to check new files for scheduled tasks. The fp32 original is downloaded and converted on the phone to a 325 MB int8 model (or a ready-made 4-bit build is downloaded) |
 | Client SDK | `com.github.TaeHunKim:ondolsaem:<tag>` on JitPack, see [docs/architecture.md](docs/architecture.md) |
 
 ## Documentation

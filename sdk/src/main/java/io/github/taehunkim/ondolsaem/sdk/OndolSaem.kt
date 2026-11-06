@@ -21,7 +21,7 @@ object OndolSaem {
      * API level of this SDK: the contract it was built against. Bump it whenever a method, parcelable field or
      * category is added, and note the level on the new method ([Api]).
      */
-    const val API_VERSION = Api.V2
+    const val API_VERSION = Api.V3
 
     /** Release of this SDK (build.gradle.kts `version`). */
     val SDK_VERSION: String get() = BuildConfig.SDK_VERSION
@@ -32,6 +32,8 @@ object OndolSaem {
         const val V1 = 1
         /** Face detection and recognition (category [Categories.FACE], IFaceService). */
         const val V2 = 2
+        /** Yes/no decisions (category [Categories.DECISION], IDecisionService). */
+        const val V3 = 3
     }
 
     /** Requests a user is waiting for (chat, search queries) run before [PRIORITY_BACKGROUND] ones (indexing). */
@@ -46,6 +48,8 @@ object OndolSaem {
         const val ASR = "asr"
         /** API 2. Face detection + identity vectors. */
         const val FACE = "face"
+        /** API 3. Yes/no decisions: does a statement follow from a text (natural language inference). */
+        const val DECISION = "decision"
     }
 
     /** Error codes of [HostCallException] (sent over Binder by [HostErrors]). */

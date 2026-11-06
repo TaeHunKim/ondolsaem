@@ -21,6 +21,7 @@ import io.github.taehunkim.ondolsaem.IEmbeddingService
 import io.github.taehunkim.ondolsaem.ILease
 import io.github.taehunkim.ondolsaem.IOcrService
 import io.github.taehunkim.ondolsaem.IFaceService
+import io.github.taehunkim.ondolsaem.IDecisionService
 import io.github.taehunkim.ondolsaem.FaceResult
 import io.github.taehunkim.ondolsaem.IOndolSaem
 import io.github.taehunkim.ondolsaem.IToolExecutor
@@ -116,6 +117,7 @@ class HostService : Service() {
                 Categories.OCR -> ocr
                 Categories.ASR -> asr
                 Categories.FACE -> face
+                Categories.DECISION -> decision
                 else -> null
             }
         }
@@ -214,6 +216,15 @@ class HostService : Service() {
                 }
             } finally { bmp.recycle() }
         }
+    }
+
+    private val decision = object : IDecisionService.Stub() {
+        override fun entail(premise: String?, hypotheses: Array<String>?, priority: Int): FloatArray =
+            serve(Categories.DECISION, priority) { pkg ->
+                val hs = hypotheses.orEmpty().toList()
+                if (hs.size > MAX_HYPOTHESES) throw BadInputException("at most $MAX_HYPOTHESES hypotheses per call")
+                runtime.decider(pkg).use { it.value.entail(premise.orEmpty().take(MAX_PREMISE_CHARS), hs) }
+            }
     }
 
     /** Copies a PCM descriptor to a temporary file (the recognizer seeks in it). */
@@ -328,5 +339,10 @@ class HostService : Service() {
         }
     }
 
-    private companion object { const val TAG = "OndolSaem.Service" }
+    private companion object {
+        const val TAG = "OndolSaem.Service"
+        const val MAX_HYPOTHESES = 64
+        /** The model reads a few hundred tokens; longer text is cut by the tokenizer anyway. */
+        const val MAX_PREMISE_CHARS = 8_000
+    }
 }

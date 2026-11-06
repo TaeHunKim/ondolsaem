@@ -9,6 +9,8 @@ import io.github.taehunkim.ondolsaem.catalog.ModelSource
 import io.github.taehunkim.ondolsaem.catalog.ModelSpec
 import io.github.taehunkim.ondolsaem.download.ModelManager
 import io.github.taehunkim.ondolsaem.engine.ChatModel
+import io.github.taehunkim.ondolsaem.engine.Decider
+import io.github.taehunkim.ondolsaem.engine.NliDecider
 import io.github.taehunkim.ondolsaem.engine.Embedder
 import io.github.taehunkim.ondolsaem.engine.FaceEngine
 import io.github.taehunkim.ondolsaem.engine.SFaceEngine
@@ -49,10 +51,11 @@ class ModelRuntime(
     val ocrRes = LeasedResource<OcrEngine>("ocr", scope, measure = measure, policy = policy(Categories.OCR))
     val asr = LeasedResource<SpeechTools>("asr", scope, measure = measure, policy = policy(Categories.ASR))
     val face = LeasedResource<FaceEngine>("face", scope, measure = measure, policy = policy(Categories.FACE))
+    val decision = LeasedResource<Decider>("decision", scope, measure = measure, policy = policy(Categories.DECISION))
 
     val resources: Map<String, LeasedResource<*>> = mapOf(
         Categories.EMBEDDING to embedding, Categories.LLM to llm, Categories.OCR to ocrRes, Categories.ASR to asr,
-        Categories.FACE to face,
+        Categories.FACE to face, Categories.DECISION to decision,
     )
 
     /** One request at a time per category, interactive first, background requests round-robin by app. */
@@ -74,6 +77,12 @@ class ModelRuntime(
     var faceFactory: suspend (spec: ModelSpec, file: File) -> FaceEngine? = { spec, file ->
         when (spec.id) {
             "face-sface" -> SFaceEngine(spec.id, file)
+            else -> null
+        }
+    }
+    var deciderFactory: suspend (spec: ModelSpec, dir: File, file: File) -> Decider? = { spec, dir, file ->
+        when (spec.id) {
+            "nli-mdeberta-v3-w8", "nli-mdeberta-v3-q4" -> NliDecider(spec.id, file, File(dir, "tokenizer.json"))
             else -> null
         }
     }
@@ -141,6 +150,13 @@ class ModelRuntime(
             ?: throw ModelNotReadyException(Categories.FACE, "unsupported face model ${spec.id}")
     }
 
+    suspend fun decider(owner: String): Lease<Decider> {
+        val spec = requireSpec(Categories.DECISION)
+        val file = manager.modelFile(spec) ?: File("")
+        return decision.acquire(spec.id, owner) { deciderFactory(spec, manager.dir(spec), file) }
+            ?: throw ModelNotReadyException(Categories.DECISION, "unsupported decision model ${spec.id}")
+    }
+
     /** A lease on [category]'s model (loads it now). */
     suspend fun lease(category: String, owner: String): Lease<*> = when (category) {
         Categories.EMBEDDING -> embedder(owner)
@@ -148,6 +164,7 @@ class ModelRuntime(
         Categories.OCR -> ocr(owner)
         Categories.ASR -> speech(owner)
         Categories.FACE -> faces(owner)
+        Categories.DECISION -> decider(owner)
         else -> throw ModelNotReadyException(category, "unknown category $category")
     }
 

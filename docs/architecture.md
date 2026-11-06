@@ -14,6 +14,7 @@ One AIDL interface per model category, reached from a small entry point, so a ne
 | `IOcrService` | `recognize(pfd)` |
 | `IAsrService` | `canTranscribe()`, `speechSpans(pfd)` (VAD), `transcribe(pfd, fromMs, ICueCallback)`; input is raw 16 kHz mono 16-bit PCM; the callback returns false to stop |
 | `IFaceService` (API 2) | `detectFaces(pfd)` → `FaceResult[]` (box in 0..1 image coordinates, quality 0..1, L2-normalized 128-d `vector`, `modelId`, `modelVersion`) |
+| `IDecisionService` (API 3) | `entail(premise, hypotheses[], priority)` → `float[]`: per hypothesis the probability (0..1) that it follows from the premise (at most 64 hypotheses, premise cut to 8000 characters and to the model's window) |
 
 - Large inputs (images, WAV, PCM) go as `ParcelFileDescriptor` because of Binder's ~1 MB transaction limit; the host then needs no storage permission.
 - Every request carries a priority: `INTERACTIVE` (chat, search queries) runs before `BACKGROUND` (indexing); background requests of several apps take turns.
@@ -24,13 +25,24 @@ One AIDL interface per model category, reached from a small entry point, so a ne
 
 Category `face` (API 2, model `face-sface`): ML Kit face detection (bundled, accurate mode, all landmarks, faces at least 5 % of the image and 40 px) finds the faces; each face with all five landmarks (eyes, nose base, mouth corners) is warped with a least-squares similarity transform onto SFace's 112×112 template (the ArcFace reference points, as OpenCV's `FaceRecognizerSF.alignCrop`) and embedded by SFace (OpenCV Zoo, MobileFaceNet trained with the SFace loss, 128-d, input NCHW RGB 0..255), then L2-normalized. The quality score is `1 − (|yaw| + |pitch|) / 90°`. Clients compare vectors with the cosine similarity; OpenCV's threshold for "same person" is 0.363 (measured on the emulator with photos of five public figures: same person 0.54 to 0.90, different people at most 0.22).
 
-SFace runs on the ONNX Runtime that sherpa-onnx already ships (`libonnxruntime.so`, 1.28.2). A second ONNX Runtime (for example `onnxruntime-android`) cannot be added: both libraries are called `libonnxruntime.so` and their symbols are versioned per release (`OrtGetApiBase@VERS_1.28.2`), so one copy cannot serve both. `engine/OrtModel` therefore reaches sherpa's copy through a small JNI bridge (`src/main/cpp/ort_bridge.cpp`: `dlopen` + `OrtGetApiBase`, one float input and output), built with CMake against the ONNX Runtime C API headers in `src/main/cpp/include` (MIT). When sherpa-onnx moves to a new ONNX Runtime line, update those headers to the same line.
+SFace runs on the ONNX Runtime that sherpa-onnx already ships (`libonnxruntime.so`, 1.28.2). A second ONNX Runtime (for example `onnxruntime-android`) cannot be added: both libraries are called `libonnxruntime.so` and their symbols are versioned per release (`OrtGetApiBase@VERS_1.28.2`), so one copy cannot serve both. `engine/OrtModel` therefore reaches sherpa's copy through a small JNI bridge (`src/main/cpp/ort_bridge.cpp`: `dlopen` + `OrtGetApiBase`; one float input, or several int64 inputs of one shape, and the first float output; graph optimization level selectable), built with CMake against the ONNX Runtime C API headers in `src/main/cpp/include` (MIT). When sherpa-onnx moves to a new ONNX Runtime line, update those headers to the same line.
+
+## Decisions
+
+Category `decision` (API 3): yes/no answers with a probability. The model is mDeBERTa-v3-base fine-tuned for natural language inference in 27 languages including Korean (`MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7`, ONNX export of `onnx-community`). A question becomes a statement (*hypothesis*) checked against the text (*premise*); clients build statements with the SDK's `Decisions.hypothesis(topic, description)` ("이 글은 여행에 관한 내용이다." / "This text is about travel.") and read answers with `Decisions.verdict` (yes ≥ 0.70, no ≤ 0.30, unsure between; starting values). P(yes) is the softmax over the entailment and contradiction logits, neutral left out, the usual zero-shot reading. `engine/NliDecider` batches up to 8 hypotheses per run over a 320-token window (premise cut first); `engine/UnigramTokenizer` is a Kotlin port of the model's SentencePiece unigram tokenizer (NFKC with the exceptions of the model's table, whitespace runs folded, Metaspace, Viterbi), checked against Hugging Face `tokenizers` by `UnigramTokenizerTest`.
+
+The published int8 builds (dynamic quantization: activations to uint8 per tensor) answer wrongly on sherpa-onnx's ONNX Runtime 1.28.2 for Android (and on desktop ONNX Runtime without graph fusions, or below 1.24: logits near zero, probabilities around 0.5). Two models therefore exist:
+
+- `nli-mdeberta-v3-w8` (default): the fp32 original (1.1 GB) is downloaded and converted on the phone to weight-only int8 (325 MB; MatMul weights int8 per output column, the embedding table int8 per row, activations stay float). The converted graph ships in the APK (`assets/nli-w8/model.onnx`, all initializers external in `weights.bin`) with `recipe.tsv`; `engine/NliW8Converter` reads the fp32 file's initializers (a small protobuf reader, `OnnxTensors`), applies the recipe and writes `weights.bin`, then the download is deleted (`ModelSource.HuggingFace.convert`, state *Converting*). Both are made by `scripts/make-nli-w8-template.py`, whose `--check` does the same conversion in numpy; `NliW8ConverterTest` compares the two byte for byte.
+- `nli-mdeberta-v3-q4`: the published 4-bit build (weights only, MatMulNBits; 845 MB because the embedding table stays fp32), no conversion.
+
+Both give the fp32 answers within 0.01 on the test sentences. Emulator (CPU, 2 threads): about 40 ms per question, 10 questions on one note about 0.5 s.
 
 ## Versioning
 
 Host and clients are updated independently, so every connection starts with a version exchange:
 
-- `OndolSaem.API_VERSION` (SDK) is the contract level; named levels live in `OndolSaem.Api` (`V1` = everything in this document except the face category; `V2` adds category `face` and `IFaceService`). A change to the contract (new method, new parcelable field, new category, changed meaning) bumps it, and the new method's doc names its level.
+- `OndolSaem.API_VERSION` (SDK) is the contract level; named levels live in `OndolSaem.Api` (`V1` = everything in this document except the face category; `V2` adds category `face` and `IFaceService`; `V3` adds category `decision` and `IDecisionService`). A change to the contract (new method, new parcelable field, new category, changed meaning) bumps it, and the new method's doc names its level.
 - On every (re)connection the client calls `apiVersion()` (never changes) and then `hello(ClientInfo(apiVersion, sdkVersion))`. The host answers `HostInfo(apiVersion, minClientApi, appVersion)`.
 - **Host older than the client needs:** the client refuses to connect when `apiVersion()` is below its `minHostApi`, and every SDK call checks the level it needs (`call(minApi = …)`) before sending anything, so an older host never receives a transaction it does not know. Both end in `HostUnavailableException(HOST_TOO_OLD)`: the client tells the user to update OndolSaem. `supports(level)` lets a client switch features off instead.
 - **Client older than the host serves:** `hello` fails with `CLIENT_TOO_OLD` when the client's level is below `HostContainer.MIN_CLIENT_API` (`HostUnavailableException(CLIENT_TOO_OLD)`): the client tells the user to update itself. Raise the minimum only when an old contract can no longer be honoured; until then a newer host serves every older level (same transaction ids, appended parcelable fields are skipped by old readers).
@@ -43,14 +55,14 @@ A category is a registry entry (string id, title, description, change impact, de
 | Category | Change impact |
 |---|---|
 | Embedding | `REINDEX_REQUIRED`: strong warning listing the apps that must re-embed |
-| OCR, speech recognition | `DERIVED_DATA`: notice that derived text may change |
+| OCR, speech recognition, decisions | `DERIVED_DATA`: notice that derived text or answers (note tags) may change |
 | Chat LLM | `NONE` |
 
 Each category has curated models with descriptions; one model is the category default (stored in DataStore, `HostSettings`; until the user picks one, `ModelCategory.defaultModelId` applies). The embedding default is EmbeddingGemma 2 740M (`eg2-740m`) since 0.4.0 because it also embeds audio; installs from before 0.4.0 that never picked a model keep 440M, pinned by `HostUpgrade` (otherwise every client would re-index). Clients always use the default of a category. A category whose default is not downloaded answers `MODEL_NOT_READY`; speech still offers voice activity detection (Silero VAD is bundled).
 
 ## Downloads
 
-Downloads run in WorkManager with resume (`.part` file + HTTP Range) and a progress notification. On a metered network (mobile data or metered Wi-Fi, `ConnectivityManager.isActiveNetworkMetered`) the app warns before starting and offers "download now" or "wait for Wi-Fi" (`NetworkType.UNMETERED`, shown as "Waiting for Wi-Fi"). After the download the file is checked against the SHA-256 in the catalog (the Hugging Face LFS id; for the SenseVoice archive, the hashes of the unpacked files), shown as "Checking the file…"; a mismatch deletes the file and reports it as damaged (`DownloadException.Kind.CORRUPT`), and Retry downloads it again from the start.
+Downloads run in WorkManager with resume (`.part` file + HTTP Range) and a progress notification. On a metered network (mobile data or metered Wi-Fi, `ConnectivityManager.isActiveNetworkMetered`) the app warns before starting and offers "download now" or "wait for Wi-Fi" (`NetworkType.UNMETERED`, shown as "Waiting for Wi-Fi"). A model may bring extra files from the same repository (`ModelSource.HuggingFace.extras`, e.g. a tokenizer), each with its own SHA-256, and may be converted after the download (*Converting for this phone…*, see Decisions). After the download the file is checked against the SHA-256 in the catalog (the Hugging Face LFS id; for the SenseVoice archive, the hashes of the unpacked files), shown as "Checking the file…"; a mismatch deletes the file and reports it as damaged (`DownloadException.Kind.CORRUPT`), and Retry downloads it again from the start.
 
 ## Residency
 

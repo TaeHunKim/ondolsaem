@@ -32,3 +32,6 @@
 .codex/
 *.jks
 *.keystore
+
+# graph-only template of the decision model conversion (no weights; scripts/make-nli-w8-template.py)
+!/app/src/main/assets/nli-w8/model.onnx

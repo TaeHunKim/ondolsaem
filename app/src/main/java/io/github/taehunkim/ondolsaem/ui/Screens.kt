@@ -265,6 +265,10 @@ private fun ModelRow(
                     LinearProgressIndicator(Modifier.weight(1f))
                     Text(stringResource(R.string.model_verifying), style = MaterialTheme.typography.labelMedium)
                 }
+                is ModelState.Converting -> {
+                    LinearProgressIndicator({ if (state.total > 0) state.done.toFloat() / state.total else 0f }, Modifier.weight(1f))
+                    Text(stringResource(R.string.model_converting), style = MaterialTheme.typography.labelMedium)
+                }
                 ModelState.WaitingForWifi -> {
                     Text(stringResource(R.string.model_waiting_wifi), style = MaterialTheme.typography.labelMedium)
                     TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }

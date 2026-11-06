@@ -18,6 +18,7 @@ Only to download models the user asks for:
 - `https://huggingface.co/litert-community/...` (EmbeddingGemma 2 and the chat models; the Hugging Face token, if set, is sent only here)
 - `https://github.com/k2-fsa/sherpa-onnx/releases/...` (SenseVoice)
 - `https://huggingface.co/opencv/face_recognition_sface/...` (SFace)
+- `https://huggingface.co/onnx-community/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7-ONNX/...` (decision model and its tokenizer)
 
 Before a download on a metered network (mobile data or metered Wi-Fi) the app asks first. Every downloaded file is checked against a SHA-256 recorded in the app, so a damaged or replaced file is not used.
 

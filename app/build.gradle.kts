@@ -4,7 +4,7 @@ plugins {
 }
 
 // Single place to bump the app version: major.minor.patch, versionCode = major*10000 + minor*100 + patch.
-val appVersionName = "0.4.0"
+val appVersionName = "0.5.0"
 val appVersionCode = appVersionName.split(".").let { (a, b, c) -> a.toInt() * 10000 + b.toInt() * 100 + c.toInt() }
 
 android {
@@ -73,4 +73,13 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+// Decision model checks against desktop references (skipped without them):
+// -PnliTokenizer=tokenizer.json (UnigramTokenizerTest), -PnliFp32=model.onnx -PnliW8Check=weights.bin made by
+// scripts/make-nli-w8-template.py --check (NliW8ConverterTest)
+tasks.withType<Test>().configureEach {
+    providers.gradleProperty("nliTokenizer").orNull?.let { environment("NLI_TOKENIZER", it) }
+    providers.gradleProperty("nliFp32").orNull?.let { environment("NLI_FP32", it) }
+    providers.gradleProperty("nliW8Check").orNull?.let { environment("NLI_W8_CHECK", it) }
 }

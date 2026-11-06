@@ -10,6 +10,8 @@ import io.github.taehunkim.ondolsaem.engine.ChatTurn
 import io.github.taehunkim.ondolsaem.engine.Cue
 import io.github.taehunkim.ondolsaem.engine.DetectedFace
 import io.github.taehunkim.ondolsaem.engine.Embedder
+import io.github.taehunkim.ondolsaem.catalog.ModelCategories
+import io.github.taehunkim.ondolsaem.engine.Decider
 import io.github.taehunkim.ondolsaem.engine.FaceEngine
 import io.github.taehunkim.ondolsaem.engine.OcrEngine
 import io.github.taehunkim.ondolsaem.engine.Span
@@ -124,7 +126,13 @@ class HostServiceTest {
                 DetectedFace(i * 0.1f, 0.1f, i * 0.1f + 0.1f, 0.5f, 0.9f, floatArrayOf(i.toFloat(), 1f))
             }
         } }
-        for (c in listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR, Categories.FACE)) {
+        runtime.deciderFactory = { spec, _, _ -> object : Decider {
+            override val modelId = spec.id
+            // yes when the premise contains the hypothesis' last word
+            override fun entail(premise: String, hypotheses: List<String>) =
+                hypotheses.map { if (premise.contains(it.trimEnd('.').substringAfterLast(' '))) 0.9f else 0.1f }.toFloatArray()
+        } }
+        for (c in listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR, Categories.FACE, Categories.DECISION)) {
             container.settings.setResidency(c, Residency.IDLE_2M)
             runtime.unload(c)
         }
@@ -137,13 +145,13 @@ class HostServiceTest {
         container.minClientApi = HostContainer.MIN_CLIENT_API
         runtime.readyOverride = null
         client.disconnect()
-        for (c in listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR, Categories.FACE)) runtime.unload(c)
+        for (c in listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR, Categories.FACE, Categories.DECISION)) runtime.unload(c)
     }
 
     @Test fun reportsApiAndCategories() = runBlocking {
         assertEquals(OndolSaem.API_VERSION, client.apiVersion())
         val cats = client.categories().map { it.category }
-        assertEquals(listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR, Categories.FACE), cats)
+        assertEquals(listOf(Categories.EMBEDDING, Categories.LLM, Categories.OCR, Categories.ASR, Categories.FACE, Categories.DECISION), cats)
         val emb = client.activeModel(Categories.EMBEDDING)!!
         assertEquals("eg2-440m", emb.id)
         assertTrue(emb.ready)
@@ -226,6 +234,21 @@ class HostServiceTest {
         assertEquals("face-sface", faces[0].modelId)
         try { client.detectFaces(byteArrayOf(1, 2, 3)); fail() } catch (e: HostCallException) {
             assertEquals(OndolSaem.Errors.BAD_INPUT, e.code)
+        }
+    }
+
+    @Test fun decisionsAnswerPerHypothesis() = runBlocking {
+        val p = client.entail("a note about travel", listOf("This text is about travel.", "This text is about cooking."))
+        assertArrayEquals(floatArrayOf(0.9f, 0.1f), p, 1e-6f)
+        assertEquals(0, client.entail("x", emptyList()).size)
+        assertEquals("nli-mdeberta-v3-w8", client.activeModel(Categories.DECISION)!!.id)
+    }
+
+    @Test fun decisionsNeedAnApi3Host() = runBlocking {
+        container.apiVersion = OndolSaem.Api.V2
+        client.disconnect(); delay(200)
+        try { client.entail("x", listOf("y")); fail() } catch (e: HostUnavailableException) {
+            assertEquals(HostUnavailableException.Reason.HOST_TOO_OLD, e.reason)
         }
     }
 
@@ -325,7 +348,7 @@ class HostServiceTest {
         container.apiVersion = newer
         client.disconnect(); delay(200)
         assertTrue(client.supports(newer))
-        assertEquals(5, client.call(minApi = newer) { it.categories() }.size)
+        assertEquals(ModelCategories.all.size, client.call(minApi = newer) { it.categories() }.size)
     }
 
     @Test fun anOlderClientLevelIsStillServedWhileAboveTheMinimum() = runBlocking {

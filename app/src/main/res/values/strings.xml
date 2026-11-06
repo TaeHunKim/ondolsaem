@@ -152,4 +152,10 @@
     <string name="onb_notif_body">OndolSaem shows download progress, and a notification while models are kept in memory (Android needs it to keep them loaded). It also tells you when an app asks to use it.</string>
     <string name="onb_notif_allow">Allow notifications</string>
     <string name="onb_notif_allowed">Notifications are allowed.</string>
+    <string name="cat_decision">Decisions</string>
+    <string name="cat_decision_desc">Answers yes or no with a confidence: whether a text matches a topic or a condition. Apps use it to tag notes or to check new files for scheduled tasks. Changing the model may change those answers, so apps may check again.</string>
+    <string name="model_d1_desc">LiquidAI decision model that also reads images and audio. Planned; Korean is not among its languages yet.</string>
+    <string name="model_converting">Converting for this phone…</string>
+    <string name="model_nli_w8_desc">Multilingual natural language inference (trained on Korean too), text only. Downloads the original model (1.1 GB) and converts it on the phone to about 325 MB. About 40 ms per question.</string>
+    <string name="model_nli_q4_desc">The same model, ready-made 4-bit build: no conversion, but about 845 MB on disk and about 800 MB of memory while loaded.</string>
 </resources>

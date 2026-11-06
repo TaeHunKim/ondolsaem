@@ -29,9 +29,26 @@ class CatalogTest {
 
     @Test fun everyDownloadHasAChecksum() {
         for (m in ModelCatalog.all) when (val s = m.source) {
-            is ModelSource.HuggingFace -> assertTrue(m.id, s.sha256?.length == 64)
+            is ModelSource.HuggingFace -> {
+                assertTrue(m.id, s.sha256?.length == 64)
+                s.extras.forEach { (path, sha) -> assertTrue("${m.id} $path", sha?.length == 64) }
+            }
             is ModelSource.Archive -> assertEquals(m.id, s.files.values.toSet(), s.sha256.keys)
             else -> Unit
+        }
+    }
+
+    @Test fun decisionModelsBringTheirTokenizer() {
+        for (id in listOf("nli-mdeberta-v3-w8", "nli-mdeberta-v3-q4")) {
+            val s = ModelCatalog.byId(id)!!.source as ModelSource.HuggingFace
+            assertTrue(id, s.extras.containsKey("tokenizer.json"))
+        }
+    }
+
+    @Test fun conversionsHaveTheirTemplateInAssets() {
+        for (m in ModelCatalog.all) {
+            val c = (m.source as? ModelSource.HuggingFace)?.convert ?: continue
+            for (f in listOf("model.onnx", "recipe.tsv")) assertTrue("${m.id}: $c/$f", java.io.File("src/main/assets/$c/$f").exists())
         }
     }
 }

@@ -54,6 +54,11 @@ object ModelCategories {
             Categories.FACE, R.string.cat_face, R.string.cat_face_desc,
             ChangeImpact.REINDEX_REQUIRED, Residency.IDLE_2M, "face-sface",
         ),
+        ModelCategory(
+            // apps keep decisions they derived (note tags), so a new model may redo them
+            Categories.DECISION, R.string.cat_decision, R.string.cat_decision_desc,
+            ChangeImpact.DERIVED_DATA, Residency.IDLE_2M, "nli-mdeberta-v3-w8",
+        ),
     )
 
     fun byId(id: String): ModelCategory? = all.firstOrNull { it.id == id }

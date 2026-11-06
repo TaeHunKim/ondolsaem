@@ -1,4 +1,4 @@
-// JNI bridge: one ONNX model, float32 input and output, run on the libonnxruntime.so bundled by sherpa-onnx.
+// JNI bridge: one ONNX model, float32 input (or several int64 inputs of one shape) and float32 output, run on the libonnxruntime.so bundled by sherpa-onnx.
 #include <jni.h>
 #include <dlfcn.h>
 #include <android/log.h>
@@ -52,7 +52,7 @@ std::string name(JNIEnv* env, OrtSession* s, bool input) {
 }  // namespace
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_io_github_taehunkim_ondolsaem_engine_OrtModel_nativeOpen(JNIEnv* env, jclass, jstring path, jint threads) {
+Java_io_github_taehunkim_ondolsaem_engine_OrtModel_nativeOpen(JNIEnv* env, jclass, jstring path, jint threads, jint optLevel) {
     if (!api()) { env->ThrowNew(env->FindClass("java/lang/IllegalStateException"), "ONNX Runtime not available"); return 0; }
     auto* m = new Model();
     OrtSessionOptions* opts = nullptr;
@@ -60,6 +60,7 @@ Java_io_github_taehunkim_ondolsaem_engine_OrtModel_nativeOpen(JNIEnv* env, jclas
     bool bad = failed(env, api()->CreateEnv(ORT_LOGGING_LEVEL_WARNING, "ondolsaem", &m->env)) ||
                failed(env, api()->CreateSessionOptions(&opts)) ||
                failed(env, api()->SetIntraOpNumThreads(opts, threads)) ||
+               failed(env, api()->SetSessionGraphOptimizationLevel(opts, static_cast<GraphOptimizationLevel>(optLevel))) ||
                failed(env, api()->CreateSession(m->env, p, opts, &m->session));
     env->ReleaseStringUTFChars(path, p);
     if (opts) api()->ReleaseSessionOptions(opts);
@@ -106,6 +107,62 @@ Java_io_github_taehunkim_ondolsaem_engine_OrtModel_nativeRun(JNIEnv* env, jclass
     }
     if (outValue) api()->ReleaseValue(outValue);
     if (inValue) api()->ReleaseValue(inValue);
+    if (mem) api()->ReleaseMemoryInfo(mem);
+    return result;
+}
+
+/** Several int64 inputs of the same [shape] (e.g. input_ids + attention_mask), concatenated in [data]; first output. */
+extern "C" JNIEXPORT jfloatArray JNICALL
+Java_io_github_taehunkim_ondolsaem_engine_OrtModel_nativeRunLong(JNIEnv* env, jclass, jlong handle, jobjectArray names,
+                                                                  jlongArray data, jlongArray shape) {
+    auto* m = reinterpret_cast<Model*>(handle);
+    jsize dims = env->GetArrayLength(shape);
+    std::vector<int64_t> sh(dims);
+    env->GetLongArrayRegion(shape, 0, dims, reinterpret_cast<jlong*>(sh.data()));
+    size_t per = 1;
+    for (auto d : sh) per *= static_cast<size_t>(d);
+    jsize count = env->GetArrayLength(names);
+    if (static_cast<size_t>(env->GetArrayLength(data)) != per * count) {
+        env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), "input size does not match shape");
+        return nullptr;
+    }
+    std::vector<int64_t> in(per * count);
+    env->GetLongArrayRegion(data, 0, static_cast<jsize>(in.size()), reinterpret_cast<jlong*>(in.data()));
+    std::vector<std::string> nameStore(count);
+    std::vector<const char*> inNames(count);
+    for (jsize i = 0; i < count; i++) {
+        auto js = static_cast<jstring>(env->GetObjectArrayElement(names, i));
+        const char* c = env->GetStringUTFChars(js, nullptr);
+        nameStore[i] = c;
+        env->ReleaseStringUTFChars(js, c);
+        env->DeleteLocalRef(js);
+        inNames[i] = nameStore[i].c_str();
+    }
+
+    OrtMemoryInfo* mem = nullptr;
+    std::vector<OrtValue*> inValues(count, nullptr);
+    OrtValue* outValue = nullptr;
+    jfloatArray result = nullptr;
+    const char* outName = m->output.c_str();
+    bool ok = !failed(env, api()->CreateCpuMemoryInfo(OrtArenaAllocator, OrtMemTypeDefault, &mem));
+    for (jsize i = 0; ok && i < count; i++) {
+        ok = !failed(env, api()->CreateTensorWithDataAsOrtValue(mem, in.data() + per * i, per * sizeof(int64_t), sh.data(), sh.size(),
+                                                                 ONNX_TENSOR_ELEMENT_DATA_TYPE_INT64, &inValues[i]));
+    }
+    if (ok && !failed(env, api()->Run(m->session, nullptr, inNames.data(), inValues.data(), count, &outName, 1, &outValue))) {
+        OrtTensorTypeAndShapeInfo* info = nullptr;
+        size_t n = 0;
+        float* out = nullptr;
+        if (!failed(env, api()->GetTensorTypeAndShape(outValue, &info)) &&
+            !failed(env, api()->GetTensorShapeElementCount(info, &n)) &&
+            !failed(env, api()->GetTensorMutableData(outValue, reinterpret_cast<void**>(&out)))) {
+            result = env->NewFloatArray(static_cast<jsize>(n));
+            env->SetFloatArrayRegion(result, 0, static_cast<jsize>(n), out);
+        }
+        if (info) api()->ReleaseTensorTypeAndShapeInfo(info);
+    }
+    if (outValue) api()->ReleaseValue(outValue);
+    for (auto* v : inValues) if (v) api()->ReleaseValue(v);
     if (mem) api()->ReleaseMemoryInfo(mem);
     return result;
 }

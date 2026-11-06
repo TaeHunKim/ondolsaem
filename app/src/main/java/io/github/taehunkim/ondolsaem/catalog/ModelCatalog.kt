@@ -6,8 +6,20 @@ import io.github.taehunkim.ondolsaem.sdk.OndolSaem.Categories
 
 sealed interface ModelSource {
     /** Downloaded by the user from Hugging Face into app storage. */
-    data class HuggingFace(val repo: String, val fileName: String, val sha256: String? = null) : ModelSource {
-        val url: String get() = "https://huggingface.co/$repo/resolve/main/$fileName"
+    data class HuggingFace(
+        val repo: String,
+        val fileName: String,
+        val sha256: String? = null,
+        /** More files of the same repository (path in the repo → SHA-256), stored next to the main file by name. */
+        val extras: Map<String, String?> = emptyMap(),
+        /**
+         * Converted on the phone after the download (the downloaded main file is then deleted), e.g.
+         * [Conversions.NLI_W8]; the model file the runtime opens is then [ModelManager.modelFile].
+         */
+        val convert: String? = null,
+    ) : ModelSource {
+        val url: String get() = url(fileName)
+        fun url(path: String): String = "https://huggingface.co/$repo/resolve/main/$path"
     }
 
     /**
@@ -15,6 +27,11 @@ sealed interface ModelSource {
      * [sha256] the local file name to the expected hash of the unpacked file.
      */
     data class Archive(val url: String, val files: Map<String, String>, val sha256: Map<String, String> = emptyMap()) : ModelSource
+
+    object Conversions {
+        /** fp32 mDeBERTa → weight-only int8 (engine/NliW8Converter, assets/nli-w8). */
+        const val NLI_W8 = "nli-w8"
+    }
 
     /** Shipped inside the APK (small). */
     data object Bundled : ModelSource
@@ -141,6 +158,35 @@ object ModelCatalog {
             ),
         ),
         ModelSpec(
+            // the published int8 builds give wrong answers on sherpa-onnx's ONNX Runtime (see NliW8Converter):
+            // the fp32 file is downloaded and turned into weight-only int8 (341 MB) on the phone
+            id = "nli-mdeberta-v3-w8", category = Categories.DECISION,
+            displayName = "mDeBERTa-v3 NLI · int8 (multilingual, Korean)",
+            descriptionRes = R.string.model_nli_w8_desc,
+            sizeBytes = 1_116_156_872L + 16_316_225L, license = "MIT",
+            source = ModelSource.HuggingFace(
+                NLI_REPO, "onnx/model.onnx", "af43c04cb326eec0629bb8de8ccd4d8a73db6030272047c5f03f66277d059437",
+                extras = mapOf("tokenizer.json" to NLI_TOKENIZER_SHA), convert = ModelSource.Conversions.NLI_W8,
+            ),
+        ),
+        ModelSpec(
+            id = "nli-mdeberta-v3-q4", category = Categories.DECISION,
+            displayName = "mDeBERTa-v3 NLI · q4 (multilingual, Korean)",
+            descriptionRes = R.string.model_nli_q4_desc,
+            sizeBytes = 886_137_147L + 16_316_225L, license = "MIT",
+            source = ModelSource.HuggingFace(
+                NLI_REPO, "onnx/model_q4.onnx", "09fcf761615f574942f0a95e08b3221da7e13cb335141609630eaffd223beb17",
+                extras = mapOf("tokenizer.json" to NLI_TOKENIZER_SHA),
+            ),
+        ),
+        ModelSpec(
+            id = "d1-omni-600m", category = Categories.DECISION,
+            displayName = "LiquidAI d1-omni 600M (text, images, audio)",
+            descriptionRes = R.string.model_d1_desc,
+            sizeBytes = null, license = "LFM Open License 1.0",
+            source = ModelSource.Planned,
+        ),
+        ModelSpec(
             id = "asr-moonshine", category = Categories.ASR,
             displayName = "Moonshine tiny (Korean / English)",
             descriptionRes = R.string.model_moonshine_desc,
@@ -155,6 +201,9 @@ object ModelCatalog {
             source = ModelSource.Planned,
         ),
     )
+
+    private const val NLI_REPO = "onnx-community/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7-ONNX"
+    private const val NLI_TOKENIZER_SHA = "ac9bd80d04d21b4df95917bdf7c750cbea28acc30a4462c76ca2b9c86d371863"
 
     fun byId(id: String): ModelSpec? = all.firstOrNull { it.id == id }
     fun ofCategory(category: String): List<ModelSpec> = all.filter { it.category == category }
