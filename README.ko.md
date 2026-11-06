@@ -39,6 +39,12 @@
 - [docs/privacy.md](docs/privacy.md): 저장 데이터, 네트워크, 연결 허용 범위
 - [docs/roadmap.md](docs/roadmap.md): 앞으로 할 일
 
+## 이름의 뜻
+
+**온돌샘**은 집 전체를 밑에서 데우는 난방 **온돌**과, 누구나 와서 물을 길어 가는 **샘**을 합친 이름입니다. 온돌샘도 그렇게 동작합니다. 다른 앱들 아래에서 눈에 띄지 않게 모델을 메모리에 데워 두고, 모든 앱이 각자 모델을 들고 있는 대신 같은 샘에서 길어 갑니다. 원래 온돌과 샘은 따로 나온 후보였는데, 다른 이름과 겹치지 않도록 둘을 합쳤습니다. 합치고 보니 "집 밑의 따뜻한 돌에서 솟는 샘"이라는 한 장면이 됩니다.
+
+두 부분에 각각 역두문자가 있습니다: **ONDOL**은 On-device Neural Deployment & Orchestration Layer(모델 실행·관리), **SAEM**은 Shared AI Engine Manager(모델 공유)입니다.
+
 ## 라이선스
 
 Apache License 2.0, [LICENSE](LICENSE) 참고. 서드파티 구성요소: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

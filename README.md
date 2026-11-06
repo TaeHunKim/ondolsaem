@@ -39,6 +39,12 @@ Status: early development (0.6.0). The first client is [Nunsori / 눈소리](htt
 - [docs/privacy.md](docs/privacy.md): what is stored, network, who can connect
 - [docs/roadmap.md](docs/roadmap.md): planned work
 
+## About the name
+
+**온돌샘 (OndolSaem)** joins **온돌** (*ondol*), the Korean floor heating that warms a whole house from underneath, and **샘** (*saem*), a spring that everyone draws water from. OndolSaem works the same way: it sits below the other apps, unseen, keeps the models warm in memory, and every app draws from the same source instead of carrying its own copy. *Ondol* and *saem* were two separate candidates; they were joined into one word so the name is distinctive, and together they make one picture: a spring rising from the warm stones under the house.
+
+The two parts have their own backronyms: **ONDOL**, On-device Neural Deployment & Orchestration Layer (running and managing the models), and **SAEM**, Shared AI Engine Manager (sharing them). Say it "on-dol-sam".
+
 ## License
 
 Apache License 2.0, see [LICENSE](LICENSE). Third-party components: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
