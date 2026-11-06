@@ -55,9 +55,9 @@ object ModelCategories {
             ChangeImpact.REINDEX_REQUIRED, Residency.IDLE_2M, "face-sface",
         ),
         ModelCategory(
-            // apps keep decisions they derived (note tags), so a new model may redo them
+            // no warning: apps that keep answers (Jogakbo's tags) store the model id and ask again on their own
             Categories.DECISION, R.string.cat_decision, R.string.cat_decision_desc,
-            ChangeImpact.DERIVED_DATA, Residency.IDLE_2M, "nli-mdeberta-v3-w8",
+            ChangeImpact.NONE, Residency.IDLE_2M, "nli-mdeberta-v3-w8",
         ),
     )
 

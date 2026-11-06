@@ -55,8 +55,8 @@ A category is a registry entry (string id, title, description, change impact, de
 | Category | Change impact |
 |---|---|
 | Embedding | `REINDEX_REQUIRED`: strong warning listing the apps that must re-embed |
-| OCR, speech recognition, decisions | `DERIVED_DATA`: notice that derived text or answers (note tags) may change |
-| Chat LLM | `NONE` |
+| OCR, speech recognition | `DERIVED_DATA`: notice that derived text may change |
+| Chat LLM, decisions | `NONE` (decisions: apps that keep answers, such as Jogakbo's tags, store the model id and ask again after the model-change broadcast) |
 
 Each category has curated models with descriptions; one model is the category default (stored in DataStore, `HostSettings`; until the user picks one, `ModelCategory.defaultModelId` applies). The embedding default is EmbeddingGemma 2 740M (`eg2-740m`) since 0.4.0 because it also embeds audio; installs from before 0.4.0 that never picked a model keep 440M, pinned by `HostUpgrade` (otherwise every client would re-index). Clients always use the default of a category. A category whose default is not downloaded answers `MODEL_NOT_READY`; speech still offers voice activity detection (Silero VAD is bundled).
 
