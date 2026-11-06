@@ -13,8 +13,9 @@ interface Decider : AutoCloseable {
 
 /**
  * A multilingual NLI cross-encoder (mDeBERTa-v3 xnli, int8 ONNX) on sherpa-onnx's ONNX Runtime ([OrtModel]).
- * All hypotheses of one premise run as one batch; P(yes) is softmax over the entailment and contradiction logits
- * (neutral left out), the usual zero-shot classification reading.
+ * All hypotheses of one premise run as one batch; P(yes) is the entailment probability of the three-way softmax
+ * (entailment, neutral, contradiction). Leaving neutral out (the usual zero-shot reading) made unrelated topics look
+ * likely: on Korean notes against 8 topics it gave 21 false yes at 0.70 against 6 with neutral kept.
  */
 class NliDecider(
     override val modelId: String,
@@ -37,7 +38,7 @@ class NliDecider(
             val mask = LongArray(rows.size * len)
             rows.forEachIndexed { r, row -> row.forEachIndexed { c, id -> ids[r * len + c] = id.toLong(); mask[r * len + c] = 1 } }
             val logits = ort.runLong(linkedMapOf("input_ids" to ids, "attention_mask" to mask), longArrayOf(rows.size.toLong(), len.toLong()))
-            for (r in rows.indices) out[from + r] = Nli.yes(logits[r * 3], logits[r * 3 + 2])
+            for (r in rows.indices) out[from + r] = Nli.yes(logits[r * 3], logits[r * 3 + 1], logits[r * 3 + 2])
         }
         return out
     }
@@ -53,10 +54,10 @@ class NliDecider(
 
 /** NLI output reading, kept apart from [NliDecider] so it is testable without the native runtime. */
 object Nli {
-    /** softmax(entailment, contradiction)[0]. */
-    fun yes(entail: Float, contra: Float): Float {
-        val m = maxOf(entail, contra)
-        val a = exp((entail - m).toDouble()); val b = exp((contra - m).toDouble())
-        return (a / (a + b)).toFloat()
+    /** softmax(entailment, neutral, contradiction)[0]. */
+    fun yes(entail: Float, neutral: Float, contra: Float): Float {
+        val m = maxOf(entail, neutral, contra)
+        val a = exp((entail - m).toDouble()); val b = exp((neutral - m).toDouble()); val c = exp((contra - m).toDouble())
+        return (a / (a + b + c)).toFloat()
     }
 }
