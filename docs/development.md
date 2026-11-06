@@ -43,6 +43,10 @@ Clients depend on `com.github.TaeHunKim:ondolsaem:<tag>` (see below). To change 
 
 The two clients run in the test process, so they share one app identity; the per-app turns of `PriorityGate` are covered by its unit tests. Emulator reference (CPU, eg2-440m, n=12): load 0.3 s, query p50 35 ms, image p50 0.73 s, two clients 28 requests/s, interactive next to images p50 0.76 s. Real-device GPU numbers still need to be recorded here (roadmap).
 
+### NPU builds
+
+`scripts/npu-check.sh [-s SERIAL]` runs `NpuParityTest` on a connected phone the same way (the app stays installed). Download an embedding model and its NPU build in the app first (Models › the model › "Download NPU build"). For each embedding model with an NPU build it checks that the build loads on the NPU and that its vectors match the CPU build (cosine ≥ 0.98 for documents, queries and an image), and logs the cosine and the NPU and GPU time per input. It writes `build/npu/<device>-<date>.txt`. Without an NPU build (the emulator, other chips) the tests are skipped. `NpuTest` (unit) covers the chip names and the catalog's NPU entries.
+
 ## Publishing the SDK
 
 JitPack builds the SDK from a git tag (`jitpack.yml` runs `:sdk:publishReleasePublicationToMavenLocal`):

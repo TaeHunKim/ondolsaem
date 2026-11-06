@@ -6,8 +6,8 @@ OndolSaem has no server, no account and no analytics. It runs AI models on the p
 
 In the app's private storage (removed on uninstall or "Clear data"):
 
-- Downloaded models under `files/models/<model id>/`.
-- Settings (DataStore `host_settings`): the active model and memory policy of each category, the chat context size, the optional Hugging Face token, the list of client apps (package names and the categories each used), and the decisions about other apps (package, signing-certificate SHA-256, allowed/denied/waiting, time of the last request). Request counts and timings are kept in memory only.
+- Downloaded models under `files/models/<model id>/` (NPU builds in its `npu/` folder), and the NPU libraries under `files/npu/` (a copy of the vendor's dispatch library; on Snapdragon phones also Qualcomm's QNN runtime, about 25 MB).
+- Settings (DataStore `host_settings`): the active model and memory policy of each category, the chat context size, whether to use the NPU, the optional Hugging Face token, the list of client apps (package names and the categories each used), and the decisions about other apps (package, signing-certificate SHA-256, allowed/denied/waiting, time of the last request). Request counts and timings are kept in memory only.
 
 Inputs that client apps send (texts, images, audio, chat messages) are processed in memory and never stored (this includes photos sent for face detection: OndolSaem returns the face boxes and vectors to the app and keeps nothing); speech input is copied to a temporary file in the cache for the duration of the call and deleted afterwards. Chat conversation state stays in memory while the chat model is loaded.
 
@@ -19,6 +19,7 @@ Only to download models the user asks for:
 - `https://github.com/k2-fsa/sherpa-onnx/releases/...` (SenseVoice)
 - `https://huggingface.co/opencv/face_recognition_sface/...` (SFace)
 - `https://huggingface.co/onnx-community/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7-ONNX/...` (decision model and its tokenizer)
+- `https://repo1.maven.org/maven2/com/qualcomm/qti/qnn-runtime/...` (Qualcomm's NPU runtime, only on Snapdragon phones with the first NPU build; no token or other data is sent)
 
 Before a download on a metered network (mobile data or metered Wi-Fi) the app asks first. Every downloaded file is checked against a SHA-256 recorded in the app, so a damaged or replaced file is not used.
 

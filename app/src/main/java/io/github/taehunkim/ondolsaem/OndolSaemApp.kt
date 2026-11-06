@@ -73,6 +73,25 @@ class HostContainer(val app: Application) {
         if (settings.activeModelId(spec.category).first() == id) notifier.notify(runtime.modelInfo(spec.category))
     }
 
+    /** An NPU build arrived: an active model loaded on the GPU/CPU reloads on the NPU at its next use. */
+    suspend fun onNpuInstalled(id: String) {
+        modelManager.refresh()
+        val spec = ModelCatalog.byId(id) ?: return
+        if (settings.useNpu.first() && settings.activeModelId(spec.category).first() == id) runtime.resources[spec.category]?.trim()
+    }
+
+    suspend fun deleteNpu(id: String) {
+        val spec = ModelCatalog.byId(id) ?: return
+        if (settings.activeModelId(spec.category).first() == id) runtime.unload(spec.category)
+        modelManager.deleteNpu(id)
+    }
+
+    /** NPU on/off: loaded models move at their next use (those in use finish on the old backend). */
+    suspend fun setUseNpu(on: Boolean) {
+        settings.setUseNpu(on)
+        runtime.resources.values.forEach { it.trim() }
+    }
+
     suspend fun deleteModel(id: String) {
         val spec = ModelCatalog.byId(id) ?: return
         val active = settings.activeModelId(spec.category).first() == id

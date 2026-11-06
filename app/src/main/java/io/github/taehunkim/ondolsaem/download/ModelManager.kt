@@ -10,7 +10,11 @@ import androidx.work.workDataOf
 import io.github.taehunkim.ondolsaem.catalog.ModelCatalog
 import io.github.taehunkim.ondolsaem.catalog.ModelSource
 import io.github.taehunkim.ondolsaem.catalog.ModelSpec
+import io.github.taehunkim.ondolsaem.catalog.NpuFile
 import io.github.taehunkim.ondolsaem.engine.NliW8Converter
+import io.github.taehunkim.ondolsaem.engine.Npu
+import io.github.taehunkim.ondolsaem.engine.NpuDevice
+import io.github.taehunkim.ondolsaem.engine.NpuTarget
 import io.github.taehunkim.ondolsaem.settings.HostSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -41,11 +45,37 @@ class ModelManager(
     private val settings: HostSettings,
     private val downloader: ModelDownloader = ModelDownloader(),
     private val modelsDir: File = File(context.filesDir, "models"),
+    /** This phone's NPU chip (null: no NPU builds apply). */
+    val npuDevice: NpuDevice? = Npu.device,
 ) {
     private val _states = MutableStateFlow<Map<String, ModelState>>(emptyMap())
     val states: StateFlow<Map<String, ModelState>> = _states.asStateFlow()
 
+    /** State of each model's NPU build on this phone (only models with one for [npuDevice]). */
+    private val _npuStates = MutableStateFlow<Map<String, ModelState>>(emptyMap())
+    val npuStates: StateFlow<Map<String, ModelState>> = _npuStates.asStateFlow()
+
+    val npuRuntime = NpuRuntime(context, downloader)
+
     init { refresh() }
+
+    /** The NPU build of [spec] for this phone, if one is published. */
+    fun npuSpec(spec: ModelSpec): NpuFile? = npuDevice?.let { spec.npu[it.soc] }
+
+    fun npuFile(spec: ModelSpec): File? = npuSpec(spec)?.let { File(dir(spec), "npu/${it.fileName}") }
+
+    /** The NPU build and its libraries when both are on the phone, else null. */
+    fun npuTarget(spec: ModelSpec): NpuTarget? {
+        val device = npuDevice ?: return null
+        val f = npuFile(spec)?.takeIf { it.exists() } ?: return null
+        return npuRuntime.libDir(device)?.let { NpuTarget(f, it) }
+    }
+
+    /** Download size of [spec]'s NPU build, plus the Qualcomm runtime when it is still needed. */
+    fun npuDownloadBytes(spec: ModelSpec): Long {
+        val f = npuSpec(spec) ?: return 0
+        return f.sizeBytes + if (npuDevice?.let(npuRuntime::needsInstall) == true) NpuRuntime.QNN_DOWNLOAD_BYTES else 0
+    }
 
     fun file(spec: ModelSpec): File? = when (val s = spec.source) {
         is ModelSource.HuggingFace -> File(modelsDir, "${spec.id}/${s.fileName}")
@@ -73,6 +103,16 @@ class ModelManager(
     }
 
     fun refresh() {
+        _npuStates.update { old ->
+            ModelCatalog.all.filter { npuSpec(it) != null }.associate { spec ->
+                val o = old[spec.id]
+                spec.id to when {
+                    npuTarget(spec) != null -> ModelState.Installed
+                    o is ModelState.Downloading || o is ModelState.WaitingForWifi || o is ModelState.Verifying || o is ModelState.Failed -> o
+                    else -> ModelState.NotInstalled
+                }
+            }
+        }
         _states.update { old ->
             ModelCatalog.all.associate { spec ->
                 spec.id to when {
@@ -88,6 +128,67 @@ class ModelManager(
     }
 
     private fun set(id: String, state: ModelState) = _states.update { it + (id to state) }
+    private fun setNpu(id: String, state: ModelState) = _npuStates.update { it + (id to state) }
+
+    /** Downloads [id]'s NPU build for this phone (and the Qualcomm runtime when needed). */
+    fun startNpuDownload(id: String, wifiOnly: Boolean = false) {
+        val spec = ModelCatalog.byId(id) ?: return
+        if (npuSpec(spec) == null || npuTarget(spec) != null) return
+        setNpu(id, if (wifiOnly) ModelState.WaitingForWifi else ModelState.Downloading(0, npuDownloadBytes(spec)))
+        val req = OneTimeWorkRequestBuilder<ModelDownloadWorker>()
+            .setInputData(workDataOf(ModelDownloadWorker.KEY_MODEL_ID to id, ModelDownloadWorker.KEY_NPU to true))
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(if (wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED).build())
+            .build()
+        WorkManager.getInstance(context).enqueueUniqueWork(npuWorkName(id), ExistingWorkPolicy.REPLACE, req)
+    }
+
+    fun cancelNpuDownload(id: String) {
+        WorkManager.getInstance(context).cancelUniqueWork(npuWorkName(id))
+        setNpu(id, ModelState.NotInstalled)
+    }
+
+    /** Deletes [id]'s NPU build; the Qualcomm runtime goes with the last one. */
+    fun deleteNpu(id: String) {
+        val spec = ModelCatalog.byId(id) ?: return
+        WorkManager.getInstance(context).cancelUniqueWork(npuWorkName(id))
+        File(dir(spec), "npu").deleteRecursively()
+        if (ModelCatalog.all.none { s -> npuFile(s)?.exists() == true }) npuRuntime.delete()
+        if (npuSpec(spec) != null) setNpu(id, ModelState.NotInstalled)
+    }
+
+    /** Called from [ModelDownloadWorker] for an NPU build. */
+    suspend fun runNpuDownload(spec: ModelSpec, onProgress: (Long, Long) -> Unit) {
+        val device = npuDevice ?: return
+        val f = npuSpec(spec) ?: return
+        val target = npuFile(spec)!!
+        try {
+            if (npuRuntime.needsInstall(device)) {
+                npuRuntime.install(device) { d, t -> setNpu(spec.id, ModelState.Downloading(d, t)); onProgress(d, t) }
+            }
+            if (!target.exists()) {
+                val src = spec.source as ModelSource.HuggingFace
+                val part = File(target.path + ".dl")
+                downloader.download(src.url(f.fileName), part, settings.hfToken.first()) { d, t ->
+                    setNpu(spec.id, ModelState.Downloading(d, t)); onProgress(d, t)
+                }
+                setNpu(spec.id, ModelState.Verifying)
+                withContext(Dispatchers.IO) {
+                    Checksums.verify(part, f.sha256)
+                    if (!part.renameTo(target)) throw java.io.IOException("rename failed")
+                }
+            }
+            setNpu(spec.id, ModelState.Installed)
+        } catch (e: CancellationException) {
+            setNpu(spec.id, ModelState.NotInstalled)
+            throw e
+        } catch (e: DownloadException) {
+            setNpu(spec.id, ModelState.Failed(e.kind, e.message))
+            throw e
+        } catch (e: Exception) {
+            setNpu(spec.id, ModelState.Failed(null, e.message))
+            throw e
+        }
+    }
 
     /** [wifiOnly]: wait for an unmetered network (the user declined downloading over a metered one). */
     fun startDownload(id: String, wifiOnly: Boolean = false) {
@@ -120,6 +221,7 @@ class ModelManager(
         if (spec.source is ModelSource.Archive || hf?.extras?.isNotEmpty() == true || hf?.convert != null) {
             dir(spec).deleteRecursively()
         }
+        deleteNpu(id) // useless without the main file (the fallback)
         set(id, ModelState.NotInstalled)
     }
 
@@ -199,6 +301,7 @@ class ModelManager(
     }
 
     private fun workName(id: String) = "model-download-$id"
+    private fun npuWorkName(id: String) = "model-download-npu-$id"
 
     private companion object { const val ARCHIVE_NAME = "download.tar.bz2" }
 }

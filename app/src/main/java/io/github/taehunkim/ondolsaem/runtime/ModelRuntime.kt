@@ -17,6 +17,7 @@ import io.github.taehunkim.ondolsaem.engine.SFaceEngine
 import io.github.taehunkim.ondolsaem.engine.EmbeddingGemma2Embedder
 import io.github.taehunkim.ondolsaem.engine.LiteRtChatModel
 import io.github.taehunkim.ondolsaem.engine.MlKitOcrEngine
+import io.github.taehunkim.ondolsaem.engine.NpuTarget
 import io.github.taehunkim.ondolsaem.engine.OcrEngine
 import io.github.taehunkim.ondolsaem.engine.SherpaSpeech
 import io.github.taehunkim.ondolsaem.engine.SpeechTools
@@ -64,15 +65,18 @@ class ModelRuntime(
     private val litertCache get() = File(context.cacheDir, "litertlm")
 
     /** Test hooks. */
-    var embedderFactory: suspend (spec: ModelSpec, file: File) -> Embedder? = { spec, file ->
+    var embedderFactory: suspend (spec: ModelSpec, file: File, npu: NpuTarget?) -> Embedder? = { spec, file, npu ->
         when (spec.id) {
-            "eg2-440m", "eg2-740m" -> EmbeddingGemma2Embedder.load(spec.id, file, litertCache)
+            "eg2-440m", "eg2-740m" -> EmbeddingGemma2Embedder.load(spec.id, file, litertCache, npu = npu)
             else -> null
         }
     }
-    var chatFactory: suspend (spec: ModelSpec, file: File, contextTokens: Int) -> ChatModel? = { spec, file, ctx ->
-        LiteRtChatModel.load(file, litertCache, spec.vision, ctx)
+    var chatFactory: suspend (spec: ModelSpec, file: File, contextTokens: Int, npu: NpuTarget?) -> ChatModel? = { spec, file, ctx, npu ->
+        LiteRtChatModel.load(file, litertCache, spec.vision, ctx, npu)
     }
+
+    /** The NPU build to try first for [spec], when NPU use is on and the build and its libraries are on the phone. */
+    private suspend fun npu(spec: ModelSpec): NpuTarget? = if (settings.useNpu.first()) manager.npuTarget(spec) else null
     var ocrFactory: suspend (spec: ModelSpec) -> OcrEngine = { MlKitOcrEngine(it.id) }
     var faceFactory: suspend (spec: ModelSpec, file: File) -> FaceEngine? = { spec, file ->
         when (spec.id) {
@@ -120,7 +124,8 @@ class ModelRuntime(
     suspend fun embedder(owner: String): Lease<Embedder> {
         val spec = requireSpec(Categories.EMBEDDING)
         val file = manager.file(spec) ?: File("")
-        return embedding.acquire(spec.id, owner) { embedderFactory(spec, file) }
+        val npu = npu(spec)
+        return embedding.acquire(spec.id + if (npu != null) "|npu" else "", owner) { embedderFactory(spec, file, npu) }
             ?: throw ModelNotReadyException(Categories.EMBEDDING, "unsupported embedding model ${spec.id}")
     }
 
@@ -128,7 +133,8 @@ class ModelRuntime(
         val spec = requireSpec(Categories.LLM)
         val file = manager.file(spec) ?: File("")
         val ctx = settings.chatContextTokens.first()
-        return llm.acquire("${spec.id}|$ctx", owner) { chatFactory(spec, file, ctx) }
+        val npu = npu(spec)
+        return llm.acquire("${spec.id}|$ctx" + if (npu != null) "|npu" else "", owner) { chatFactory(spec, file, ctx, npu) }
             ?: throw ModelNotReadyException(Categories.LLM, "chat model ${spec.id} did not load")
     }
 

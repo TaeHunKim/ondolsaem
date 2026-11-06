@@ -8,7 +8,7 @@ The name joins *ondol* (온돌, the floor heating that warms a whole house from 
 - **ONDOL**: On-device Neural Deployment & Orchestration Layer
 - **SAEM**: Shared AI Engine Manager
 
-Status: early development (0.5.0). The first client is [Nunsori / 눈소리](https://github.com/taehunkim/nunsori), an on-device semantic search app.
+Status: early development (0.6.0). The first client is [Nunsori / 눈소리](https://github.com/taehunkim/nunsori), an on-device semantic search app.
 
 ## Features
 
@@ -22,6 +22,7 @@ Status: early development (0.5.0). The first client is [Nunsori / 눈소리](htt
 | Dashboard | Device memory, the host's memory use, loaded models and which apps hold them |
 | Apps | Apps that use the host, their categories and request statistics; own apps (same signing key or an allowed key) connect directly; other apps ask first and are allowed, denied or revoked here |
 | Decisions | Category *Decisions*: a multilingual (Korean too) natural language inference model answers whether a text matches a topic or condition, with a probability, in about 40 ms. Apps use it to tag notes and to check new files for scheduled tasks. The fp32 original is downloaded and converted on the phone to a 325 MB int8 model (or a ready-made 4-bit build is downloaded) |
+| NPU | On phones with an NPU build for their chip (Pixel 10/11, Snapdragon 8 Gen 2 to 8 Elite Gen 5, Dimensity 9400/9500): download it under the model and the embedding model (and Gemma 4 E2B on Pixel) runs on the NPU, falling back to the GPU, then the CPU. Snapdragon phones also get Qualcomm's NPU runtime (about 25 MB) |
 | Client SDK | `com.github.TaeHunKim:ondolsaem:<tag>` on JitPack, see [docs/architecture.md](docs/architecture.md) |
 
 ## Documentation

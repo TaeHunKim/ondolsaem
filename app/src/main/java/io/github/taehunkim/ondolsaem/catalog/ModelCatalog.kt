@@ -40,6 +40,9 @@ sealed interface ModelSource {
     data object Planned : ModelSource
 }
 
+/** An NPU build of a model: a file of the same Hugging Face repository compiled ahead of time for one chip. */
+data class NpuFile(val fileName: String, val sha256: String, val sizeBytes: Long)
+
 data class ModelSpec(
     val id: String,
     /** A [ModelCategory] id. */
@@ -55,6 +58,11 @@ data class ModelSpec(
     val vision: Boolean = false,
     /** Bump when the same id starts producing different outputs (clients then redo their derived data). */
     val version: Int = 1,
+    /**
+     * NPU builds by chip ([io.github.taehunkim.ondolsaem.engine.NpuDevice.soc]), downloaded on demand next to the
+     * main file; the main file stays for the GPU/CPU fallback.
+     */
+    val npu: Map<String, NpuFile> = emptyMap(),
 )
 
 /**
@@ -74,6 +82,16 @@ object ModelCatalog {
                 "embeddinggemma-2-text-vision-440m.litertlm",
                 "92dcbea108899e5d6e30d919b0744f90d9967e80c67a4ab5503ac16d54f62eb0",
             ),
+            npu = mapOf(
+                "TENSOR_G5" to NpuFile("embeddinggemma-2-text-vision-440m_Google_Tensor_G5.litertlm", "96cdbae7b3dd6fa0f829fef2d0dd5bafc0179890d9bafbfe972db852e818d758", 559_418_036L),
+                "TENSOR_G6" to NpuFile("embeddinggemma-2-text-vision-440m_Google_Tensor_G6.litertlm", "40e98aeed9ef08abfd91d5d309f64f4fa06195c513931e917bcf5ea41a910668", 513_166_004L),
+                "MT6991" to NpuFile("embeddinggemma-2-text-vision-440m_MediaTek_MT6991.litertlm", "53cb4b8b3d8ca3e022ceec1dd809ddd26c281721c4652e1fadc82d2433cbc5de", 798_097_408L),
+                "MT6993" to NpuFile("embeddinggemma-2-text-vision-440m_MediaTek_MT6993.litertlm", "1cfc52d73266fe0e099e853b816150c22deb32fea421cabf9647dc8d8112ede9", 767_770_624L),
+                "SM8550" to NpuFile("embeddinggemma-2-text-vision-440m_Qualcomm_SM8550.litertlm", "4427eecca4289555e72b297308f4c9cf97110a657de25dd2fe7946ac824f6214", 465_993_728L),
+                "SM8650" to NpuFile("embeddinggemma-2-text-vision-440m_Qualcomm_SM8650.litertlm", "ec7d2ee513830337343567409f32fea4a3e4f8f7b94facd0a20f3d3523cd7480", 465_747_968L),
+                "SM8750" to NpuFile("embeddinggemma-2-text-vision-440m_Qualcomm_SM8750.litertlm", "c5c05cb59833541a2d0d9374c7b50d2c3a406a4a84c85762775e5f9c6d96cd0c", 446_611_456L),
+                "SM8850" to NpuFile("embeddinggemma-2-text-vision-440m_Qualcomm_SM8850.litertlm", "661369235aa9fc23cf04a213d4e445c4634073832279f5a261ed22650a8ebc5b", 462_536_704L),
+            ),
         ),
         ModelSpec(
             id = "eg2-740m", category = Categories.EMBEDDING,
@@ -86,6 +104,16 @@ object ModelCatalog {
                 "e7a8a2204b91e0f96e92960e84a09a89212e1633dcb7575a9bf3378b4df77f4c",
             ),
             audio = true,
+            npu = mapOf(
+                "TENSOR_G5" to NpuFile("embeddinggemma-2-740m_Google_Tensor_G5.litertlm", "5b53d76c2c7c66d2dc6230ff158ea0033ac5939ac7cfcf827c3a22cdfc742a5e", 657_656_500L),
+                "TENSOR_G6" to NpuFile("embeddinggemma-2-740m_Google_Tensor_G6.litertlm", "ed0e4f413e705946eda544078d8bf5acf10fe5aee2946451c81919a1f59665e7", 615_713_460L),
+                "MT6991" to NpuFile("embeddinggemma-2-740m_MediaTek_MT6991.litertlm", "99e6a35b824b4f7ad4f7c7f20c59ba380aa90e0b4442aadfee3674230c6c7cca", 895_008_768L),
+                "MT6993" to NpuFile("embeddinggemma-2-740m_MediaTek_MT6993.litertlm", "ed2a2554bfb6d7abcafd0e9e36ee2f8d7de82888e7ed0fc52dd144e65b171742", 864_681_984L),
+                "SM8550" to NpuFile("embeddinggemma-2-740m_Qualcomm_SM8550.litertlm", "802686a865fd7350f2ce4b6fa17ce02a411f56b5b508ec2bd8cb7310b2db82e6", 562_905_088L),
+                "SM8650" to NpuFile("embeddinggemma-2-740m_Qualcomm_SM8650.litertlm", "3b8a18c6d043b8132c4eda45611296e1ae455ada82cda8b591ec0ca141e041c5", 562_659_328L),
+                "SM8750" to NpuFile("embeddinggemma-2-740m_Qualcomm_SM8750.litertlm", "ac1973c0195dc6e28a621651f2f5e04d35fdc7a7b11cdbbe94f29f5dccb57996", 543_522_816L),
+                "SM8850" to NpuFile("embeddinggemma-2-740m_Qualcomm_SM8850.litertlm", "19f6e8db6aa74b116d1c558c862ee131f60ce093576d3c8dd1898f656ca8080b", 559_448_064L),
+            ),
         ),
         ModelSpec(
             id = "mobileclip2-s0", category = Categories.EMBEDDING,
@@ -104,6 +132,10 @@ object ModelCatalog {
                 "181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c",
             ),
             vision = true,
+            npu = mapOf(
+                "TENSOR_G5" to NpuFile("gemma-4-E2B-it_Google_Tensor_G5.litertlm", "72d056066f34362adcecf6b76995de67ad899f6f33dfe9079593c1acd2984191", 3_206_299_658L),
+                "TENSOR_G6" to NpuFile("gemma-4-E2B-it_Google_Tensor_G6.litertlm", "d6cbe8d625f4965a8c32565f65ae774d19598d0d967a4c2101a7e04988daaf58", 3_453_960_202L),
+            ),
         ),
         ModelSpec(
             id = "chat-gemma4-e4b", category = Categories.LLM,

@@ -112,8 +112,8 @@ class HostServiceTest {
 
     @Before fun setUp() = runBlocking {
         runtime.readyOverride = { true }
-        runtime.embedderFactory = { spec, _ -> embedLoads++; FakeEmbedder(spec.id).also { embedder = it } }
-        runtime.chatFactory = { _, _, _ -> chat }
+        runtime.embedderFactory = { spec, _, _ -> embedLoads++; FakeEmbedder(spec.id).also { embedder = it } }
+        runtime.chatFactory = { _, _, _, _ -> chat }
         runtime.ocrFactory = { spec -> object : OcrEngine {
             override val modelId = spec.id
             override suspend fun recognize(bitmap: Bitmap) = "${bitmap.width}x${bitmap.height}"

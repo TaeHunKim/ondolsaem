@@ -30,14 +30,17 @@ class ModelDownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWor
         setForeground(info(0, 0, spec.displayName))
         var lastPct = -1
         return try {
-            container.modelManager.runDownload(spec) { d, t ->
+            val npu = inputData.getBoolean(KEY_NPU, false)
+            val run: suspend ((Long, Long) -> Unit) -> Unit =
+                if (npu) { p -> container.modelManager.runNpuDownload(spec, p) } else { p -> container.modelManager.runDownload(spec, p) }
+            run { d, t ->
                 val pct = if (t > 0) (d * 100 / t).toInt() else 0
                 if (pct != lastPct) {
                     lastPct = pct
                     Notifications.notify(applicationContext, Notifications.ID_DOWNLOAD, info(pct, 100, spec.displayName).notification)
                 }
             }
-            container.onModelInstalled(spec.id)
+            if (npu) container.onNpuInstalled(spec.id) else container.onModelInstalled(spec.id)
             Result.success()
         } catch (e: DownloadException) {
             // Auth/404/corrupt won't fix themselves (a corrupt file was deleted; the user retries); network errors can be retried.
@@ -47,5 +50,9 @@ class ModelDownloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWor
         }
     }
 
-    companion object { const val KEY_MODEL_ID = "model_id" }
+    companion object {
+        const val KEY_MODEL_ID = "model_id"
+        /** Download the model's NPU build for this phone instead of the model. */
+        const val KEY_NPU = "npu"
+    }
 }

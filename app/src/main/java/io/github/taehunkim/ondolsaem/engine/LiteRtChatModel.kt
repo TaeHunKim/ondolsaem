@@ -113,20 +113,28 @@ class LiteRtChatModel private constructor(
         private val isEmulator: Boolean
             get() = Build.FINGERPRINT.contains("generic") || Build.HARDWARE.contains("ranchu") || Build.HARDWARE.contains("goldfish")
 
-        /** Loads the model (can take a minute; off the main thread). GPU first on real devices, CPU otherwise. */
-        suspend fun load(modelFile: File, cacheDir: File, vision: Boolean, maxTokens: Int): LiteRtChatModel =
+        /**
+         * Loads the model (can take a minute; off the main thread). With [npu], its NPU build first (images on the GPU,
+         * as AI Edge Gallery does); then the GPU on real devices, the CPU otherwise. An NPU build has its context
+         * length fixed when it was compiled: a larger [maxTokens] fails there and falls back to the GPU.
+         */
+        suspend fun load(modelFile: File, cacheDir: File, vision: Boolean, maxTokens: Int, npu: NpuTarget? = null): LiteRtChatModel =
             withContext(Dispatchers.Default) {
                 cacheDir.mkdirs()
-                val backends: List<() -> Backend> =
+                class Attempt(val file: File, val main: () -> Backend, val vision: () -> Backend)
+                val plain: List<() -> Backend> =
                     if (isEmulator) listOf({ Backend.CPU() }) else listOf({ Backend.GPU() }, { Backend.CPU() })
+                val attempts = listOfNotNull(
+                    npu?.let { n -> Attempt(n.file, { Backend.NPU(nativeLibraryDir = n.libDir) }, { Backend.GPU() }) },
+                ) + plain.map { b -> Attempt(modelFile, b, b) }
                 var last: Throwable? = null
-                for (make in backends) {
-                    val backend = make()
+                for (a in attempts) {
+                    val backend = a.main()
                     val engine = Engine(
                         EngineConfig(
-                            modelPath = modelFile.absolutePath,
+                            modelPath = a.file.absolutePath,
                             backend = backend,
-                            visionBackend = if (vision) backend else null,
+                            visionBackend = if (vision) a.vision() else null,
                             audioBackend = null,
                             maxNumTokens = maxTokens,
                             maxNumImages = if (vision) 2 else null,
@@ -135,10 +143,10 @@ class LiteRtChatModel private constructor(
                     )
                     try {
                         engine.initialize()
-                        Log.i(TAG, "loaded ${modelFile.name} on ${backend.name}")
+                        Log.i(TAG, "loaded ${a.file.name} on ${backend.name}")
                         return@withContext LiteRtChatModel(engine, vision, maxTokens, backend.name)
                     } catch (t: Throwable) {
-                        Log.w(TAG, "init failed on ${backend.name}", t)
+                        Log.w(TAG, "init of ${a.file.name} failed on ${backend.name}", t)
                         runCatching { engine.close() }
                         last = t
                     }

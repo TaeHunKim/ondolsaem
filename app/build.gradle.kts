@@ -4,7 +4,7 @@ plugins {
 }
 
 // Single place to bump the app version: major.minor.patch, versionCode = major*10000 + minor*100 + patch.
-val appVersionName = "0.5.0"
+val appVersionName = "0.6.0"
 val appVersionCode = appVersionName.split(".").let { (a, b, c) -> a.toInt() * 10000 + b.toInt() * 100 + c.toInt() }
 
 android {
@@ -35,7 +35,14 @@ android {
     }
     buildFeatures { compose = true; buildConfig = true }
     androidResources { generateLocaleConfig = true }
-    packaging { jniLibs { useLegacyPackaging = true } }
+    packaging {
+        jniLibs {
+            // extracted to nativeLibraryDir: the NPU backend loads its dispatch library from there (engine/Npu.kt)
+            useLegacyPackaging = true
+            // on-device NPU compilers: only ahead-of-time compiled NPU builds are used
+            excludes += "**/libLiteRtCompilerPlugin_*.so"
+        }
+    }
     // JNI bridge to sherpa-onnx's ONNX Runtime for models sherpa does not cover (SFace), see src/main/cpp.
     externalNativeBuild { cmake { path = file("src/main/cpp/CMakeLists.txt"); version = "3.31.6" } }
     ndkVersion = "28.2.13676358"
@@ -57,6 +64,10 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.commons.compress)
     implementation(libs.litertlm.android)
+    // LiteRT NPU dispatch libraries (Apache-2.0, ~0.5 MB each); Qualcomm's QNN runtime is downloaded on demand (NpuRuntime)
+    implementation(libs.litert.npu.google.tensor)
+    implementation(libs.litert.npu.qualcomm)
+    implementation(libs.litert.npu.mediatek)
     implementation(libs.mlkit.text.recognition.korean)
     implementation(libs.mlkit.face.detection)
     // Not on Maven Central: scripts/fetch-sherpa-onnx.sh downloads it into app/libs (git-ignored).

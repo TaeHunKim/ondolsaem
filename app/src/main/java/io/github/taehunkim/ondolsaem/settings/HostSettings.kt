@@ -25,6 +25,7 @@ class HostSettings(private val context: Context) {
     private val clientsKey = stringSetPreferencesKey("clients")
     private val approvalsKey = stringPreferencesKey("approvals")
     private val lastVersionKey = intPreferencesKey("last_version_code")
+    private val useNpuKey = androidx.datastore.preferences.core.booleanPreferencesKey("use_npu")
     private val onboardingKey = androidx.datastore.preferences.core.booleanPreferencesKey("onboarding_done")
     private fun clientCategoriesKey(pkg: String) = stringSetPreferencesKey("client_categories_$pkg")
 
@@ -65,6 +66,10 @@ class HostSettings(private val context: Context) {
     /** Context window of the chat model (tokens): longer chats need more memory. */
     val chatContextTokens: Flow<Int> = store.data.map { it[chatContextKey] ?: DEFAULT_CHAT_CONTEXT }
     suspend fun setChatContextTokens(n: Int) { store.edit { it[chatContextKey] = n } }
+
+    /** Run models on the NPU when their NPU build for this phone is downloaded (else GPU, then CPU). */
+    val useNpu: Flow<Boolean> = store.data.map { it[useNpuKey] ?: true }
+    suspend fun setUseNpu(on: Boolean) { store.edit { it[useNpuKey] = on } }
 
     /** Packages that have used the host, with the categories each used (for warnings and notifications). */
     val clients: Flow<Map<String, Set<String>>> = store.data.map { p ->

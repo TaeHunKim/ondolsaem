@@ -158,4 +158,18 @@
     <string name="model_converting">Converting for this phone…</string>
     <string name="model_nli_w8_desc">Multilingual natural language inference (trained on Korean too), text only. Downloads the original model (1.1 GB) and converts it on the phone to about 325 MB. About 40 ms per question.</string>
     <string name="model_nli_q4_desc">The same model, ready-made 4-bit build: no conversion, but about 845 MB on disk and about 800 MB of memory while loaded.</string>
+    <string name="npu_title">NPU</string>
+    <string name="npu_unsupported">No NPU builds exist for this phone\'s chip, so models run on the GPU. NPU builds exist for Pixel 10/11 (Tensor G5/G6), Snapdragon 8 Gen 2 to 8 Elite Gen 5 and Dimensity 9400/9500 (Android 12 or newer).</string>
+    <string name="npu_chip">Chip</string>
+    <string name="npu_use">Use the NPU when available</string>
+    <string name="npu_use_desc">Models with a downloaded NPU build run on the NPU (faster, cooler). If the NPU fails, they run on the GPU, then the CPU. Download NPU builds under each model in Models.</string>
+    <string name="npu_qnn">Qualcomm QNN runtime</string>
+    <string name="npu_qnn_missing">Not installed</string>
+    <string name="npu_qnn_desc">Qualcomm NPUs need Qualcomm\'s runtime, which is downloaded with the first NPU build from Maven Central (75 MB download; only the Hexagon %1$s libraries, about 25 MB, are kept). It is covered by Qualcomm\'s license; it is deleted with the last NPU build.</string>
+    <string name="npu_build">NPU build for %1$s</string>
+    <string name="npu_build_name">%1$s (NPU build)</string>
+    <string name="npu_download">Download NPU build (%1$s)</string>
+    <string name="npu_installed">Installed: used instead of the GPU</string>
+    <string name="npu_installed_off">Installed (NPU use is off in Settings)</string>
+    <string name="npu_failed">Download failed</string>
 </resources>

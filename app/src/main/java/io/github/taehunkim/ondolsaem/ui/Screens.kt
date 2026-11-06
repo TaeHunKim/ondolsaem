@@ -162,7 +162,10 @@ fun ModelsScreen(vm: HostViewModel) {
     val residency by vm.residency.collectAsState()
     val ctx by vm.chatContext.collectAsState()
     val clients by vm.clients.collectAsState() // for the model-change warning
+    val npuStates by vm.npuStates.collectAsState()
+    val useNpu by vm.useNpu.collectAsState()
     var meteredFor by remember { mutableStateOf<ModelSpec?>(null) }
+    var meteredNpu by remember { mutableStateOf<ModelSpec?>(null) }
     var switchTo by remember { mutableStateOf<Pair<ModelCategory, ModelSpec>?>(null) }
 
     LazyColumn(Modifier.testTag("models")) {
@@ -199,6 +202,14 @@ fun ModelsScreen(vm: HostViewModel) {
                         onCancel = { vm.cancelDownload(spec.id) },
                         onDelete = { vm.delete(spec.id) },
                     )
+                    val npuState = npuStates[spec.id]
+                    val soc = vm.npuDevice?.soc
+                    if (npuState != null && soc != null && states[spec.id] is ModelState.Installed) NpuRow(
+                        soc, vm.npuSize(spec.id), npuState, useNpu,
+                        onDownload = { if (vm.isMetered()) meteredNpu = spec else vm.downloadNpu(spec.id, wifiOnly = false) },
+                        onCancel = { vm.cancelNpu(spec.id) },
+                        onDelete = { vm.deleteNpu(spec.id) },
+                    )
                 }
             }
         }
@@ -209,6 +220,14 @@ fun ModelsScreen(vm: HostViewModel) {
             spec.displayName, spec.sizeBytes?.let(::formatBytes) ?: "?",
             onDownload = { wifiOnly -> vm.download(spec.id, wifiOnly); meteredFor = null },
             onCancel = { meteredFor = null },
+        )
+    }
+
+    meteredNpu?.let { spec ->
+        MeteredDialog(
+            stringResource(R.string.npu_build_name, spec.displayName), formatBytes(vm.npuSize(spec.id)),
+            onDownload = { wifiOnly -> vm.downloadNpu(spec.id, wifiOnly); meteredNpu = null },
+            onCancel = { meteredNpu = null },
         )
     }
 
@@ -301,6 +320,43 @@ private fun ModelRow(
         if (selected && !usable && state !is ModelState.Unavailable) {
             Text(stringResource(R.string.model_selected_missing), color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 48.dp))
+        }
+    }
+}
+
+/** A model's NPU build for this phone ([soc]): download, progress, delete. Shown under an installed model. */
+@Composable
+private fun NpuRow(soc: String, size: Long, state: ModelState, useNpu: Boolean, onDownload: () -> Unit, onCancel: () -> Unit, onDelete: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(start = 48.dp).testTag("npu_row")) {
+        Text(stringResource(R.string.npu_build, soc), style = MaterialTheme.typography.labelLarge)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            when (state) {
+                ModelState.Installed -> {
+                    Text(stringResource(if (useNpu) R.string.npu_installed else R.string.npu_installed_off), style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                    TextButton(onClick = onDelete) { Text(stringResource(R.string.model_delete)) }
+                }
+                is ModelState.Downloading -> {
+                    val pct = if (state.total > 0) (state.downloaded * 100 / state.total).toInt() else 0
+                    Column(Modifier.weight(1f)) {
+                        LinearProgressIndicator(progress = { pct / 100f }, modifier = Modifier.fillMaxWidth())
+                        Text(stringResource(R.string.model_downloading, pct), style = MaterialTheme.typography.labelMedium)
+                    }
+                    TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
+                }
+                ModelState.Verifying -> {
+                    LinearProgressIndicator(Modifier.weight(1f))
+                    Text(stringResource(R.string.model_verifying), style = MaterialTheme.typography.labelMedium)
+                }
+                ModelState.WaitingForWifi -> {
+                    Text(stringResource(R.string.model_waiting_wifi), style = MaterialTheme.typography.labelMedium)
+                    TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
+                }
+                is ModelState.Failed -> {
+                    Text(stringResource(R.string.npu_failed), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    OutlinedButton(onClick = onDownload) { Text(stringResource(R.string.model_retry)) }
+                }
+                else -> OutlinedButton(onClick = onDownload) { Text(stringResource(R.string.npu_download, formatBytes(size))) }
+            }
         }
     }
 }
@@ -403,6 +459,7 @@ fun SettingsScreen(vm: HostViewModel) {
                 }
             }
         }
+        item { NpuSettings(vm) }
         item {
             SectionCard(stringResource(R.string.settings_about)) {
                 KeyValue(stringResource(R.string.settings_version), BuildConfig.VERSION_NAME)
@@ -412,6 +469,33 @@ fun SettingsScreen(vm: HostViewModel) {
                 Spacer(Modifier.width(1.dp))
                 Text(context.packageName, style = MaterialTheme.typography.bodySmall)
             }
+        }
+    }
+}
+
+@Composable
+private fun NpuSettings(vm: HostViewModel) {
+    val useNpu by vm.useNpu.collectAsState()
+    val npuStates by vm.npuStates.collectAsState()
+    val device = vm.npuDevice
+    SectionCard(stringResource(R.string.npu_title)) {
+        if (device == null) {
+            Text(stringResource(R.string.npu_unsupported), style = MaterialTheme.typography.bodySmall)
+            return@SectionCard
+        }
+        KeyValue(stringResource(R.string.npu_chip), device.soc)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.npu_use), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            androidx.compose.material3.Switch(checked = useNpu, onCheckedChange = vm::setUseNpu, modifier = Modifier.testTag("npu_switch"))
+        }
+        Text(stringResource(R.string.npu_use_desc), style = MaterialTheme.typography.bodySmall)
+        if (device.vendor == io.github.taehunkim.ondolsaem.engine.NpuVendor.QUALCOMM) {
+            val bytes = remember(npuStates) { vm.npuRuntimeBytes() }
+            KeyValue(
+                stringResource(R.string.npu_qnn),
+                if (bytes > 0) "${io.github.taehunkim.ondolsaem.download.NpuRuntime.QNN_VERSION} · ${formatBytes(bytes)}" else stringResource(R.string.npu_qnn_missing),
+            )
+            Text(stringResource(R.string.npu_qnn_desc, device.hexagon ?: "?"), style = MaterialTheme.typography.bodySmall)
         }
     }
 }

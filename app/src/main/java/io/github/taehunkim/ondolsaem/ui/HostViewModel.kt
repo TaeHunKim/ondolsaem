@@ -42,6 +42,17 @@ class HostViewModel(app: Application) : AndroidViewModel(app) {
         stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)
 
     val modelStates = c.modelManager.states
+    val npuStates = c.modelManager.npuStates
+    /** This phone's NPU chip, or null when no NPU builds apply. */
+    val npuDevice = c.modelManager.npuDevice
+    val useNpu: StateFlow<Boolean> = c.settings.useNpu.state(true)
+    fun setUseNpu(on: Boolean) { viewModelScope.launch { c.setUseNpu(on) } }
+    fun npuSize(id: String): Long = ModelCatalog.byId(id)?.let(c.modelManager::npuDownloadBytes) ?: 0
+    fun downloadNpu(id: String, wifiOnly: Boolean) = c.modelManager.startNpuDownload(id, wifiOnly)
+    fun cancelNpu(id: String) = c.modelManager.cancelNpuDownload(id)
+    fun deleteNpu(id: String) { viewModelScope.launch { c.deleteNpu(id) } }
+    /** Bytes of the Qualcomm runtime on the phone (0: none needed or not installed). */
+    fun npuRuntimeBytes(): Long = npuDevice?.let(c.modelManager.npuRuntime::installedBytes) ?: 0
 
     val approvals = c.approvals.all
     fun decideApproval(pkg: String, allow: Boolean) = c.decideApproval(pkg, allow)
