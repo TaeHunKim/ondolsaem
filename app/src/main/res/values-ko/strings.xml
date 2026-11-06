@@ -180,4 +180,9 @@
     <string name="npu_found_none">아직 %1$s용으로 공개된 온돌샘 모델의 NPU 빌드가 없습니다. 앱을 쓰는 동안 매주 다시 확인합니다.</string>
     <string name="npu_check_failed">확인하지 못했습니다(오프라인?). 마지막 결과를 유지합니다.</string>
     <string name="npu_recheck">다시 확인</string>
+    <string name="npu_selfcheck">NPU 점검</string>
+    <string name="npu_selfcheck_desc">받은 NPU 빌드를 CPU, GPU, NPU에서 차례로 로딩해 결과와 속도를 비교하고, 복사하거나 공유할 수 있는 보고서를 만듭니다(몇 분 걸림, 사용 중인 모델은 방해하지 않음).</string>
+    <string name="npu_selfcheck_running">점검 중… 이 화면을 열어 두세요</string>
+    <string name="npu_selfcheck_copy">복사</string>
+    <string name="npu_selfcheck_share">공유</string>
 </resources>

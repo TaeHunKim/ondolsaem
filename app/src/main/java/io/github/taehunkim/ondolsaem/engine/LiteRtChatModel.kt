@@ -118,7 +118,11 @@ class LiteRtChatModel private constructor(
          * as AI Edge Gallery does); then the GPU on real devices, the CPU otherwise. An NPU build has its context
          * length fixed when it was compiled: a larger [maxTokens] fails there and falls back to the GPU.
          */
-        suspend fun load(modelFile: File, cacheDir: File, vision: Boolean, maxTokens: Int, npu: NpuTarget? = null): LiteRtChatModel =
+        suspend fun load(
+            modelFile: File, cacheDir: File, vision: Boolean, maxTokens: Int, npu: NpuTarget? = null,
+            /** True: the NPU build only, failing instead of falling back (NPU self-check). */
+            npuOnly: Boolean = false,
+        ): LiteRtChatModel =
             withContext(Dispatchers.Default) {
                 cacheDir.mkdirs()
                 class Attempt(val file: File, val main: () -> Backend, val vision: () -> Backend)
@@ -126,7 +130,7 @@ class LiteRtChatModel private constructor(
                     if (isEmulator) listOf({ Backend.CPU() }) else listOf({ Backend.GPU() }, { Backend.CPU() })
                 val attempts = listOfNotNull(
                     npu?.let { n -> Attempt(n.file, { Backend.NPU(nativeLibraryDir = n.libDir) }, { Backend.GPU() }) },
-                ) + plain.map { b -> Attempt(modelFile, b, b) }
+                ) + if (npuOnly) emptyList() else plain.map { b -> Attempt(modelFile, b, b) }
                 var last: Throwable? = null
                 for (a in attempts) {
                     val backend = a.main()
@@ -142,7 +146,11 @@ class LiteRtChatModel private constructor(
                         ),
                     )
                     try {
+                        val t0 = System.currentTimeMillis()
                         engine.initialize()
+                        if (backend is Backend.NPU && NpuLog.registered(t0 - 50) == false) {
+                            throw IllegalStateException("the NPU accelerator was not registered: LiteRT would run the NPU build on the CPU")
+                        }
                         Log.i(TAG, "loaded ${a.file.name} on ${backend.name}")
                         return@withContext LiteRtChatModel(engine, vision, maxTokens, backend.name)
                     } catch (t: Throwable) {

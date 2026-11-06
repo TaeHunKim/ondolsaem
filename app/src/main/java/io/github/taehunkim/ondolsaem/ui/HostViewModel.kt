@@ -54,6 +54,28 @@ class HostViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
     val npuCheck = c.modelManager.npuCheck
+
+    /** The NPU self-check: running, and the report so far (null before the first run). */
+    data class NpuReport(val running: Boolean, val text: String)
+    private val _npuReport = kotlinx.coroutines.flow.MutableStateFlow<NpuReport?>(null)
+    val npuReport: StateFlow<NpuReport?> = _npuReport
+
+    fun runNpuSelfCheck() {
+        if (_npuReport.value?.running == true) return
+        _npuReport.value = NpuReport(true, "")
+        viewModelScope.launch(Dispatchers.Default) {
+            // free the memory of idle models first: the check loads each build in turn
+            c.runtime.trim(includeKept = false)
+            val text = try {
+                io.github.taehunkim.ondolsaem.runtime.NpuSelfCheck(getApplication(), c.modelManager)
+                    .run(c.settings.useNpu.first()) { _npuReport.value = NpuReport(true, it) }
+            } catch (t: Throwable) {
+                if (t is kotlinx.coroutines.CancellationException) throw t
+                (_npuReport.value?.text.orEmpty()) + "\ncheck stopped: $t\n"
+            }
+            _npuReport.value = NpuReport(false, text)
+        }
+    }
     fun recheckNpu() { viewModelScope.launch { c.modelManager.checkNpuBuilds(force = true) } }
 
     init {

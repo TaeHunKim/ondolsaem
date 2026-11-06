@@ -485,6 +485,7 @@ private fun NpuSettings(vm: HostViewModel) {
     SectionCard(stringResource(R.string.npu_title)) {
         if (device == null) {
             Text(stringResource(R.string.npu_unsupported), style = MaterialTheme.typography.bodySmall)
+            NpuSelfCheckSection(vm)
             return@SectionCard
         }
         KeyValue(stringResource(R.string.npu_chip), device.soc)
@@ -522,6 +523,45 @@ private fun NpuSettings(vm: HostViewModel) {
                 if (bytes > 0) "${io.github.taehunkim.ondolsaem.download.NpuRuntime.QNN_VERSION} · ${formatBytes(bytes)}" else stringResource(R.string.npu_qnn_missing),
             )
             Text(stringResource(R.string.npu_qnn_desc, device.hexagon ?: "?"), style = MaterialTheme.typography.bodySmall)
+        }
+        NpuSelfCheckSection(vm)
+    }
+}
+
+/** "Check the NPU": runs [io.github.taehunkim.ondolsaem.runtime.NpuSelfCheck] and shows the report to copy or share. */
+@Composable
+private fun NpuSelfCheckSection(vm: HostViewModel) {
+    val report by vm.npuReport.collectAsState()
+    val context = LocalContext.current
+    Text(stringResource(R.string.npu_selfcheck_desc), style = MaterialTheme.typography.bodySmall)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        OutlinedButton(onClick = vm::runNpuSelfCheck, enabled = report?.running != true, modifier = Modifier.testTag("npu_selfcheck")) {
+            Text(stringResource(R.string.npu_selfcheck))
+        }
+        val r = report
+        if (r != null && !r.running) {
+            TextButton(onClick = {
+                val cm = context.getSystemService(android.content.ClipboardManager::class.java)
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("OndolSaem NPU check", r.text))
+            }) { Text(stringResource(R.string.npu_selfcheck_copy)) }
+            TextButton(onClick = {
+                val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
+                    .putExtra(android.content.Intent.EXTRA_SUBJECT, "OndolSaem NPU check")
+                    .putExtra(android.content.Intent.EXTRA_TEXT, r.text)
+                runCatching { context.startActivity(android.content.Intent.createChooser(send, null)) }
+            }) { Text(stringResource(R.string.npu_selfcheck_share)) }
+        }
+    }
+    report?.let { r ->
+        if (r.running) {
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+            Text(stringResource(R.string.npu_selfcheck_running), style = MaterialTheme.typography.labelMedium)
+        }
+        androidx.compose.foundation.text.selection.SelectionContainer {
+            Text(
+                r.text, style = MaterialTheme.typography.bodySmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
+                modifier = Modifier.testTag("npu_report"),
+            )
         }
     }
 }

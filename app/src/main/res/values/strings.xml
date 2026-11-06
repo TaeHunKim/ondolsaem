@@ -181,4 +181,9 @@
     <string name="npu_found_none">No NPU builds of OndolSaem\'s models are published for %1$s yet. Checked again weekly while the app is used.</string>
     <string name="npu_check_failed">Could not check (offline?). The last result is kept.</string>
     <string name="npu_recheck">Check again</string>
+    <string name="npu_selfcheck">Check the NPU</string>
+    <string name="npu_selfcheck_desc">Loads each downloaded NPU build on the CPU, GPU and NPU in turn, compares their results and speed, and writes a report to copy or share (takes a few minutes; models in use are not interrupted).</string>
+    <string name="npu_selfcheck_running">Checking… keep this screen open</string>
+    <string name="npu_selfcheck_copy">Copy</string>
+    <string name="npu_selfcheck_share">Share</string>
 </resources>

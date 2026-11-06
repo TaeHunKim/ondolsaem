@@ -87,6 +87,8 @@ class EmbeddingGemma2Embedder private constructor(
          */
         suspend fun load(
             modelId: String, modelFile: File, cacheDir: File, lowPower: Boolean = false, npu: NpuTarget? = null,
+            /** Load on this backend only (the NPU build when NPU) and fail instead of falling back. */
+            only: OnlyBackend? = null,
         ): EmbeddingGemma2Embedder = withContext(Dispatchers.Default) {
             cacheDir.mkdirs()
             val audio = modelId == "eg2-740m" // only the 740M build has an audio encoder
@@ -97,6 +99,15 @@ class EmbeddingGemma2Embedder private constructor(
             val plain = (if (lowPower) listOf({ Backend.CPU(threadCount = LOW_POWER_THREADS) })
                 else if (isEmulator) listOf({ Backend.CPU() }) else listOf({ Backend.GPU() }, { Backend.CPU() }))
                 .map { b -> Attempt(modelFile, b, b, if (audio) b else null) }
+            if (only != null) {
+                val tries = when (only) {
+                    OnlyBackend.NPU -> npuTries.ifEmpty { error("no NPU build") }
+                    OnlyBackend.GPU -> listOf(Attempt(modelFile, { Backend.GPU() }, { Backend.GPU() }, if (audio) ({ Backend.GPU() }) else null))
+                    OnlyBackend.CPU -> listOf(Attempt(modelFile, { Backend.CPU() }, { Backend.CPU() }, if (audio) ({ Backend.CPU() }) else null))
+                }
+                val (engine, name) = open(modelId, tries, cacheDir)
+                return@withContext EmbeddingGemma2Embedder(modelId, engine, name)
+            }
             val loadPlain: suspend () -> Pair<EmbeddingEngine, String> = { open(modelId, plain, cacheDir) }
             if (npuTries.isNotEmpty()) {
                 runCatching { open(modelId, npuTries, cacheDir) }.getOrNull()?.let { (engine, name) ->
@@ -124,7 +135,11 @@ class EmbeddingGemma2Embedder private constructor(
                     ),
                 )
                 try {
+                    val t0 = System.currentTimeMillis()
                     engine.initialize()
+                    if (backend is Backend.NPU && NpuLog.registered(t0 - 50) == false) {
+                        throw IllegalStateException("the NPU accelerator was not registered: LiteRT would run the NPU build on the CPU")
+                    }
                     Log.i(TAG, "loaded $modelId (${a.file.name}) on ${backend.name}")
                     return engine to backend.name
                 } catch (t: Throwable) {

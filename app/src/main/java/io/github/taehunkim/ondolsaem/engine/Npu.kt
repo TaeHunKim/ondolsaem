@@ -18,6 +18,9 @@ data class NpuDevice(val soc: String, val vendor: NpuVendor, val hexagon: String
     val key: String get() = soc.uppercase().filter { it.isLetterOrDigit() }
 }
 
+/** One backend only, no fallback: the NPU self-check loads each backend on its own to compare them. */
+enum class OnlyBackend { CPU, GPU, NPU }
+
 /** Where the runtime finds an NPU build of a model: the compiled file and the folder of the NPU libraries. */
 data class NpuTarget(val file: File, val libDir: String)
 
@@ -50,4 +53,26 @@ object Npu {
         TENSOR.find(m)?.let { return NpuDevice("TENSOR_G${it.groupValues[1]}", NpuVendor.GOOGLE_TENSOR) }
         return null
     }
+}
+
+/**
+ * Whether LiteRT registered its NPU accelerator. `Backend.NPU` does not fail when the accelerator cannot be loaded:
+ * LiteRT logs "NPU accelerator could not be loaded and registered" and runs what it can on the CPU, so such a load is
+ * treated as failed. A registered accelerator is not proof either: a file without NPU-compiled parts still runs on the
+ * CPU (seen on the emulator: the same vectors as the CPU, slower), which the self-check flags. Reads this process's
+ * own log since [sinceMillis].
+ */
+object NpuLog {
+    /** True: registered; false: not registered (CPU in disguise); null: the log said neither or was unreadable. */
+    fun registered(sinceMillis: Long): Boolean? = runCatching {
+        val since = "%d.%03d".format(sinceMillis / 1000, sinceMillis % 1000)
+        val p = ProcessBuilder("logcat", "-d", "-t", since, "-v", "brief", "--pid=${android.os.Process.myPid()}", "litert:*", "*:S")
+            .redirectErrorStream(true).start()
+        val lines = p.inputStream.bufferedReader().readLines()
+        when {
+            lines.any { it.contains("NPU accelerator could not be loaded") } -> false
+            lines.any { it.contains("NPU accelerator registered") } -> true
+            else -> null
+        }
+    }.getOrNull()
 }
